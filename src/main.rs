@@ -19,8 +19,8 @@ fn main() {
     dotenv().ok();
     let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
 
-    let matches = App::new("trslt")
-        .version("0.1")
+    let matches = App::new("trs")
+        .version("0.1.1")
         .about("translate text over google translates API")
 
         .arg(Arg::with_name("query_text")

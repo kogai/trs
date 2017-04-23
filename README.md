@@ -10,5 +10,8 @@ Translate words via Google translate API in terminal.
 
 ```bash
 ./target/release/trs -t ja -q "Hello"
-// こんにちは 
+// こんにちは
+
+./target/release/trs --version 
+./target/release/trs --help 
 ``` 
