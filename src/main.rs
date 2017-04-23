@@ -25,9 +25,13 @@ fn main() {
 
         .arg(Arg::with_name("query_text")
                  .help("Set the words that translate to")
+                 .short("q")
+                 .takes_value(true)
                  .required(true))
         .arg(Arg::with_name("target_language")
-                 .help("Set the language in which words are translated"))
+                 .help("Set the language in which words are translated")
+                 .short("t")
+                 .takes_value(true))
         .get_matches();
 
     let target_language = matches.value_of("target_language").unwrap_or("ja");
