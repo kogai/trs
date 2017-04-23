@@ -1,0 +1,8 @@
+[package]
+name = "trslt"
+version = "0.1.0"
+authors = ["shinichi kogai <kogai0121@gmail.com>"]
+
+[dependencies]
+dotenv = "0.10.0"
+hyper = "0.10.9"
