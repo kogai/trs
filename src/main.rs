@@ -10,15 +10,21 @@ extern crate clap;
 mod translate;
 mod utils;
 
-use dotenv::dotenv;
+use std::env;
 use clap::{Arg, App};
 use translate::translate;
 use utils::get_env;
 
 fn main() {
-    dotenv().ok();
-    let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
+    let path_to_env = env::home_dir().and_then(|a| Some(a.join("trs").join(".env")));
+    match path_to_env {
+        Some(x) => {
+            dotenv::from_path(x.as_path()).ok();
+        },
+        None => {},
+    };
 
+    let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let matches = App::new("trs")
         .version("0.1.1")
         .about("translate text over google translates API")
