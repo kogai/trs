@@ -1,11 +1,12 @@
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate clap;
 
 extern crate dotenv;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
-extern crate clap;
 
 mod translate;
 mod utils;
@@ -28,11 +29,11 @@ fn main() {
     let matches = App::new("trs")
         .version("0.1.1")
         .about("translate text over google translates API")
-
         .arg(Arg::with_name("query_text")
                  .help("Set the words that translate to")
                  .short("q")
                  .takes_value(true)
+                 .multiple(true)
                  .required(true))
         .arg(Arg::with_name("target_language")
                  .help("Set the language in which words are translated")
@@ -40,8 +41,10 @@ fn main() {
                  .takes_value(true))
         .get_matches();
 
-    let target_language = matches.value_of("target_language").unwrap_or("ja");
-    let query_text = matches.value_of("query_text").unwrap();
+    let target_language = value_t!(matches.value_of("target_language"), String).unwrap_or("ja".to_owned());
+    let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
+    let query_text = query_words.join(" ");
+
     let result = translate(api_key, target_language, query_text);
     println!("{}", result);
 }

@@ -9,8 +9,11 @@ Translate words via Google translate API in terminal.
 1. Build executable with `cargo build --release`
 
 ```bash
-./target/release/trs -t ja -q "Hello"
-// こんにちは
+./target/release/trs -q Hello world
+// こんにちは世界
+
+.target/release/trs -q こんにちは 世界 -t en
+// Hello world
 
 ./target/release/trs --version 
 ./target/release/trs --help 

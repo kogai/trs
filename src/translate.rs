@@ -41,7 +41,7 @@ struct TranslateResponseSuccess {
     data: Data,
 }
 
-pub fn translate(api_key: String, target_language: &str, query_text: &str) -> String {
+pub fn translate(api_key: String, target_language: String, query_text: String) -> String {
     let http_client = Client::new().expect("Create HTTP client is failed");
     let url = format!("{}?q={}&target={}&format=text&key={}",
                       API_TRANSLATE,
