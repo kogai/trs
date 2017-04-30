@@ -12,7 +12,7 @@ Translate words via Google translate API in terminal.
 ./target/release/trs -q Hello world
 // こんにちは世界
 
-.target/release/trs -q こんにちは 世界 -t en
+./target/release/trs -q こんにちは 世界 -t en
 // Hello world
 
 ./target/release/trs --version 
