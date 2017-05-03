@@ -13,8 +13,6 @@ mod utils;
 
 use std::env;
 use clap::{Arg, App};
-use translate::translate;
-use utils::get_env;
 
 fn main() {
     let path_to_env = env::home_dir().and_then(|a| Some(a.join("trs").join(".env")));
@@ -25,7 +23,6 @@ fn main() {
         None => {},
     };
 
-    let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let matches = App::new("trs")
         .version("0.1.1")
         .about("translate text over google translates API")
@@ -33,18 +30,31 @@ fn main() {
                  .help("Set the words that translate to")
                  .short("q")
                  .takes_value(true)
-                 .multiple(true)
-                 .required(true))
+                 .multiple(true))
+        .arg(Arg::with_name("languages")
+                    .long("languages")
+                    .short("l")
+                    .help("See the list of languages")
+                 )
         .arg(Arg::with_name("target_language")
                  .help("Set the language in which words are translated")
                  .short("t")
                  .takes_value(true))
         .get_matches();
-
+    
+    let is_languages = matches.is_present("languages");
     let target_language = value_t!(matches.value_of("target_language"), String).unwrap_or("ja".to_owned());
-    let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
-    let query_text = query_words.join(" ");
 
-    let result = translate(api_key, target_language, query_text);
+    let result = match is_languages {
+        true => {
+            translate::language(target_language)
+        },
+        false => {
+            let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
+            let query_text = query_words.join(" ");
+            translate::translate(target_language, query_text)
+        },
+    };
+
     println!("{}", result);
 }

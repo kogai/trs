@@ -2,8 +2,10 @@ use std::io::Read;
 use reqwest::Client;
 use serde_json;
 
-const API_TRANSLATE: &'static str = "https://www.googleapis.com/language/translate/v2";
-const API_DETECT: &'static str = "/detect";
+use utils::get_env;
+
+const API_TRANSLATE: &'static str = "https://translation.googleapis.com/language/translate/v2";
+const API_LANGUAGES: &'static str = "/languages";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct ErrorReason {
@@ -61,22 +63,36 @@ fn it_should_parse_success() {
     });
 }
 
-pub fn translate(api_key: String, target_language: String, query_text: String) -> String {
+enum Method {
+    Get,
+    Post,
+}
+
+fn request(path: String, method: Method) -> String {
+     let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}?q={}&target={}&format=text&key={}",
+    let url = format!("{}{}&key={}",
                       API_TRANSLATE,
-                      query_text,
-                      target_language,
+                      path,
                       api_key);
     let mut buffer = String::new();
-
-    http_client.get(url.as_str())
-        .send()
-        .expect("send Request failed")
-        .read_to_string(&mut buffer)
-        .expect("read response failed");
+    match method {
+        Method::Get => http_client.get(url.as_str()),
+        Method::Post => http_client.post(url.as_str()),
+    }
+    .send()
+    .expect("send Request failed")
+    .read_to_string(&mut buffer)
+    .expect("read response failed");
     
+    buffer
+}
+
+pub fn translate(target_language: String, query_text: String) -> String {
+    let path = format!("?q={}&target={}&format=text", query_text, target_language);
+    let buffer = request(path, Method::Post);
     let response = serde_json::from_str::<Translate>(&buffer).unwrap();
+    
     match response {
         Translate::Success { data } => {
             data
@@ -93,3 +109,42 @@ pub fn translate(api_key: String, target_language: String, query_text: String) -
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Languages {
+    language: String,
+    name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct DataLanguage  {
+    languages: Vec<Languages>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+enum Language {
+    Success { data: DataLanguage },
+    Error { error: Errors },
+}
+
+pub fn language(target_language: String) -> String {
+    let path = format!("{}?target={}", API_LANGUAGES, target_language);
+    let buffer = request(path, Method::Get);
+    
+    let response = serde_json::from_str::<Language>(&buffer).unwrap();
+
+    match response {
+        Language::Success { data } => {
+            data
+                .languages
+                .iter()
+                .map(|l| format!("{}: {}", l.name, l.language))
+                .collect::<Vec<_>>()
+                .join("\n")
+
+        },
+        Language::Error { error } => {
+            format!("[{}]: {}", error.code, error.message)
+        },
+    }
+}
