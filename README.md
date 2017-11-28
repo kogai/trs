@@ -1,6 +1,6 @@
 # trs
 
-Translate words via Google translate API in terminal.
+Command-line interface for Google Translate.
 
 ## Usage
 
