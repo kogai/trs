@@ -1,6 +1,6 @@
-use std::io::Read;
 use reqwest::Client;
 use serde_json;
+use std::io::Read;
 
 use utils::get_env;
 
@@ -42,7 +42,9 @@ enum Translate {
 
 #[test]
 fn it_should_parse_success() {
-    assert_eq!(serde_json::from_str::<Translate>(r#"
+    assert_eq!(
+        serde_json::from_str::<Translate>(
+            r#"
     {
         "data": {
             "translations": [
@@ -53,14 +55,17 @@ fn it_should_parse_success() {
             ]
         }
     }
-    "#).unwrap(), Translate::Success {
-        data: Data {
-            translations: vec![Translations {
-                translated_text: "hi".to_owned(),
-                detected_source_language: "en".to_owned(),
-            }]
+    "#
+        ).unwrap(),
+        Translate::Success {
+            data: Data {
+                translations: vec![Translations {
+                    translated_text: "hi".to_owned(),
+                    detected_source_language: "en".to_owned(),
+                }],
+            },
         }
-    });
+    );
 }
 
 enum Method {
@@ -69,22 +74,18 @@ enum Method {
 }
 
 fn request(path: String, method: Method) -> String {
-     let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
+    let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}{}&key={}",
-                      API_TRANSLATE,
-                      path,
-                      api_key);
+    let url = format!("{}{}&key={}", API_TRANSLATE, path, api_key);
     let mut buffer = String::new();
     match method {
         Method::Get => http_client.get(url.as_str()),
         Method::Post => http_client.post(url.as_str()),
-    }
-    .send()
-    .expect("send Request failed")
-    .read_to_string(&mut buffer)
-    .expect("read response failed");
-    
+    }.send()
+        .expect("send Request failed")
+        .read_to_string(&mut buffer)
+        .expect("read response failed");
+
     buffer
 }
 
@@ -92,20 +93,14 @@ pub fn translate(target_language: String, query_text: String) -> String {
     let path = format!("?q={}&target={}&format=text", query_text, target_language);
     let buffer = request(path, Method::Post);
     let response = serde_json::from_str::<Translate>(&buffer).unwrap();
-    
-    match response {
-        Translate::Success { data } => {
-            data
-                .translations
-                .iter()
-                .map(|t| t.translated_text.to_owned())
-                .collect::<Vec<_>>()
-                .join(",")
 
-        },
-        Translate::Error { error } => {
-            format!("[{}]: {}", error.code, error.message)
-        },
+    match response {
+        Translate::Success { data } => data.translations
+            .iter()
+            .map(|t| t.translated_text.to_owned())
+            .collect::<Vec<_>>()
+            .join(","),
+        Translate::Error { error } => format!("[{}]: {}", error.code, error.message),
     }
 }
 
@@ -116,7 +111,7 @@ struct Languages {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct DataLanguage  {
+struct DataLanguage {
     languages: Vec<Languages>,
 }
 
@@ -130,21 +125,15 @@ enum Language {
 pub fn language(target_language: String) -> String {
     let path = format!("{}?target={}", API_LANGUAGES, target_language);
     let buffer = request(path, Method::Get);
-    
+
     let response = serde_json::from_str::<Language>(&buffer).unwrap();
 
     match response {
-        Language::Success { data } => {
-            data
-                .languages
-                .iter()
-                .map(|l| format!("{}: {}", l.name, l.language))
-                .collect::<Vec<_>>()
-                .join("\n")
-
-        },
-        Language::Error { error } => {
-            format!("[{}]: {}", error.code, error.message)
-        },
+        Language::Success { data } => data.languages
+            .iter()
+            .map(|l| format!("{}: {}", l.name, l.language))
+            .collect::<Vec<_>>()
+            .join("\n"),
+        Language::Error { error } => format!("[{}]: {}", error.code, error.message),
     }
 }
