@@ -3,8 +3,8 @@ use serde_json;
 use std::io::Read;
 
 const ENDPOINT_GOOGLE: &'static str = "https://translation.googleapis.com/language/translate/v2";
-const ENDPOINT_OXFORD: &'static str = "https://od-api.oxforddictionaries.com/api/v1";
 const API_LANGUAGES: &'static str = "/languages";
+const API_KEY: &'static str = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct ErrorReason {
@@ -45,9 +45,8 @@ enum Method {
 }
 
 fn request(path: String, method: Method) -> String {
-    let api_key = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
-    let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, api_key);
+    let http_client = Client::new();
+    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, API_KEY);
     let mut buffer = String::new();
     match method {
         Method::Get => http_client.get(url.as_str()),

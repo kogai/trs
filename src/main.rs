@@ -2,6 +2,8 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate hyper;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
@@ -12,6 +14,7 @@ mod translate;
 use clap::{App, Arg};
 
 fn main() {
+    /*
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about("Translate text over google translates API")
@@ -46,5 +49,7 @@ fn main() {
         let query_text = query_words.join(" ");
         translate::translate(target_language, query_text)
     };
-    println!("{}", result);
+    */
+    oxford::call();
+    // println!("{}", result);
 }
