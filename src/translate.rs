@@ -2,8 +2,6 @@ use reqwest::Client;
 use serde_json;
 use std::io::Read;
 
-use utils::get_env;
-
 const API_TRANSLATE: &'static str = "https://translation.googleapis.com/language/translate/v2";
 const API_LANGUAGES: &'static str = "/languages";
 
@@ -40,41 +38,13 @@ enum Translate {
     Error { error: Errors },
 }
 
-#[test]
-fn it_should_parse_success() {
-    assert_eq!(
-        serde_json::from_str::<Translate>(
-            r#"
-    {
-        "data": {
-            "translations": [
-                {
-                    "translatedText": "hi",
-                    "detectedSourceLanguage": "en"
-                }
-            ]
-        }
-    }
-    "#
-        ).unwrap(),
-        Translate::Success {
-            data: Data {
-                translations: vec![Translations {
-                    translated_text: "hi".to_owned(),
-                    detected_source_language: "en".to_owned(),
-                }],
-            },
-        }
-    );
-}
-
 enum Method {
     Get,
     Post,
 }
 
 fn request(path: String, method: Method) -> String {
-    let api_key = get_env("GOOGLE_CLOUD_PLATFORM_API_KEY");
+    let api_key = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let http_client = Client::new().expect("Create HTTP client is failed");
     let url = format!("{}{}&key={}", API_TRANSLATE, path, api_key);
     let mut buffer = String::new();
