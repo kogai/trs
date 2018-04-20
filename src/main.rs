@@ -6,6 +6,7 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+mod oxford;
 mod translate;
 
 use clap::{App, Arg};

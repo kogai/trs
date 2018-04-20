@@ -2,7 +2,8 @@ use reqwest::Client;
 use serde_json;
 use std::io::Read;
 
-const API_TRANSLATE: &'static str = "https://translation.googleapis.com/language/translate/v2";
+const ENDPOINT_GOOGLE: &'static str = "https://translation.googleapis.com/language/translate/v2";
+const ENDPOINT_OXFORD: &'static str = "https://od-api.oxforddictionaries.com/api/v1";
 const API_LANGUAGES: &'static str = "/languages";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -46,7 +47,7 @@ enum Method {
 fn request(path: String, method: Method) -> String {
     let api_key = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}{}&key={}", API_TRANSLATE, path, api_key);
+    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, api_key);
     let mut buffer = String::new();
     match method {
         Method::Get => http_client.get(url.as_str()),
