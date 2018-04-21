@@ -1,5 +1,3 @@
 target/
 **/*.rs.bk
 .envrc
-/oxford_client/*
-!/oxford_client/docs

@@ -7,7 +7,7 @@ extern crate hyper;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
-extern crate oxford_client;
+extern crate oxford_dictionary_api_rs;
 
 mod oxford;
 mod translate;
