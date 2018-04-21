@@ -7,7 +7,7 @@ GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
 
-bin/$(NAME): Cargo.toml $(SRC) oxford-client
+bin/$(NAME): Cargo.toml $(SRC) oxford_client
 	docker build -t $(NAME) .
 	docker run --rm -v `pwd`/target:/app/target \
 		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
@@ -16,12 +16,12 @@ bin/$(NAME): Cargo.toml $(SRC) oxford-client
 		-t $(NAME)
 	cp target/release/$(NAME) bin/$(NAME)
 
-.PHONY: oxford-client
-oxford-client:
+.PHONY: oxford_client
+oxford_client:
 	docker run --rm -v $(PWD):/local swaggerapi/swagger-codegen-cli generate \
 			-i https://developer.oxforddictionaries.com/swagger/spec/public_doc_guest.json \
 			-l rust \
-			-o /local/oxford-client
+			-o /local/oxford_client
 
 .PHONY: clean
 clean:
