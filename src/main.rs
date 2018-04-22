@@ -18,7 +18,6 @@ mod translate;
 use clap::{App, Arg};
 
 fn main() {
-    /*
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about("Translate text over google translates API")
@@ -51,9 +50,9 @@ fn main() {
     } else {
         let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
         let query_text = query_words.join(" ");
-        translate::translate(target_language, query_text)
+        let translated = translate::translate(&target_language, &query_text);
+        let definitions = oxford::definitions(&target_language, &query_text);
+        format!("{}\n\n{}", translated, definitions)
     };
-    */
-    oxford::call();
-    // println!("{}", result);
+    println!("{}", result);
 }
