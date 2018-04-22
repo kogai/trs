@@ -4,7 +4,7 @@ version = "0.2.0"
 authors = ["shinichi kogai <kogai0121@gmail.com>"]
 
 [dependencies]
-reqwest = "0.8.5"
+reqwest = "0.5.1"
 hyper = "0.11"
 hyper-tls = "0.1"
 futures = "0.1"
