@@ -1,87 +1,35 @@
-use reqwest::Client;
-use serde_json;
-use std::io::Read;
-use hyper::header::{ContentType, Headers};
+use oxford_dictionary_api_rs::{apis, models};
 
-const ENDPOINT: &'static str = "https://od-api.oxforddictionaries.com/api/v1";
-// const APIID: &'static str = env!("OXFORD_API_ID");
-// const API_KEY: &'static str = env!("OXFORD_API_KEY");
+use hyper::Client;
+use hyper_tls::HttpsConnector;
+use tokio_core::reactor::Core;
 
 header! { (AppId, "app_id") => [String] }
 header! { (AppKey, "app_key") => [String] }
 
-enum Request {
-  Entry(Vec<String>),
+// TODO: Make fn private
+pub fn call() -> models::RetrieveEntry {
+  let mut core = Core::new().unwrap();
+  let handle = core.handle();
+  let client = Client::configure()
+    .connector(HttpsConnector::new(4, &handle).unwrap())
+    .build(&handle);
+  let configure = apis::configuration::Configuration::new(client);
+
+  let api_client = apis::client::APIClient::new(configure);
+  let work = api_client
+    .dictionary_entries_api()
+    .entries_source_lang_word_id_get("en", "dog", env!("OXFORD_API_ID"), env!("OXFORD_API_KEY"));
+
+  match core.run(work) {
+    Ok(json) => json,
+    Err(e) => unreachable!("Perhaps JSON serialize error occurred.\n{:?}", e),
+  }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Response {
-  results: Vec<Result>,
-}
-// pub enum Response {
-//   Entry { results: Vec<Result> },
-// }
-
-// fn call(req: Request) -> Response {
-pub fn call() -> Response {
-  let mut headers = Headers::new();
-  headers.set(ContentType::json());
-  headers.set(AppId(env!("OXFORD_API_ID").to_string()));
-  headers.set(AppKey(env!("OXFORD_API_KEY").to_string()));
-  let client = Client::builder().default_headers(headers).build().unwrap();
-  let mut buf = String::new();
-  let _ = client
-    .get(format!("{}/entries/en/dog", ENDPOINT).as_str())
-    .send()
-    .unwrap()
-    .read_to_string(&mut buf);
-  // println!("{:?}", client);
-  println!("{:?}", serde_json::from_str::<Response>(&buf));
+pub fn enumlate_examples(json: models::RetrieveEntry) -> String {
+  // results[].lexicalEntries[].entries[].senses[].definitions[]
+  // results[].lexicalEntries[].entries[].senses[].examples[]
+  // results[].lexicalEntries[].entries[].lexicalCategory
   unimplemented!();
-  // let url = format!("{}{}&key={}", ENDPOINT, path, API_KEY);
-  // let mut buffer = String::new();
-  // match method {
-  //   Method::Get => http_client.get(url.as_str()),
-  //   Method::Post => http_client.post(url.as_str()),
-  // }.send()
-  //   .expect("send Request failed")
-  //   .read_to_string(&mut buffer)
-  //   .expect("read response failed");
-
-  // buffer
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Result {
-  id: String,
-  language: String,
-  lexical_entries: Vec<LexicalEntry>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct LexicalEntry {
-  entries: Vec<Entry>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Entry {
-  senses: Vec<Sense>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Sense {
-  definitions: Option<Vec<String>>,
-  domains: Option<Vec<String>>,
-  examples: Option<Vec<Example>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Example {
-  text: String,
 }

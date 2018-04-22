@@ -4,10 +4,13 @@ extern crate serde_derive;
 extern crate clap;
 #[macro_use]
 extern crate hyper;
+extern crate futures;
+extern crate hyper_tls;
+extern crate oxford_dictionary_api_rs;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
-extern crate oxford_dictionary_api_rs;
+extern crate tokio_core;
 
 mod oxford;
 mod translate;

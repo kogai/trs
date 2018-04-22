@@ -488,7 +488,7 @@ dependencies = [
 [[package]]
 name = "oxford_dictionary_api_rs"
 version = "1.0.0"
-source = "git+https://github.com/kogai/oxford-dictinary-api-rs#414ee065e63dd693eb6f47704c9a0f2a54bb17c2"
+source = "git+https://github.com/kogai/oxford-dictinary-api-rs#905ae132d75a165c1582fa6dba59502962e82e98"
 dependencies = [
  "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -967,12 +967,15 @@ name = "trs"
 version = "0.1.2"
 dependencies = [
  "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper-tls 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oxford_dictionary_api_rs 1.0.0 (git+https://github.com/kogai/oxford-dictinary-api-rs)",
  "reqwest 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
