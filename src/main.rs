@@ -2,10 +2,17 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate hyper;
+extern crate futures;
+extern crate hyper_tls;
+extern crate oxford_dictionary_api_rs;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
+extern crate tokio_core;
 
+mod oxford;
 mod translate;
 
 use clap::{App, Arg};
@@ -43,7 +50,15 @@ fn main() {
     } else {
         let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
         let query_text = query_words.join(" ");
-        translate::translate(target_language, query_text)
+        let translated = translate::translate(&target_language, &query_text);
+
+        if query_words.len() == 1 {
+            let head_of_query = query_words.first().unwrap();
+            let definitions = oxford::definitions(&head_of_query);
+            format!("Result: {}\n\n{}", translated, definitions)
+        } else {
+            format!("{}", translated)
+        }
     };
     println!("{}", result);
 }

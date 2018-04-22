@@ -2,8 +2,9 @@ use reqwest::Client;
 use serde_json;
 use std::io::Read;
 
-const API_TRANSLATE: &'static str = "https://translation.googleapis.com/language/translate/v2";
+const ENDPOINT_GOOGLE: &'static str = "https://translation.googleapis.com/language/translate/v2";
 const API_LANGUAGES: &'static str = "/languages";
+const API_KEY: &'static str = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct ErrorReason {
@@ -44,9 +45,8 @@ enum Method {
 }
 
 fn request(path: String, method: Method) -> String {
-    let api_key = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
     let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}{}&key={}", API_TRANSLATE, path, api_key);
+    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, API_KEY);
     let mut buffer = String::new();
     match method {
         Method::Get => http_client.get(url.as_str()),
@@ -59,7 +59,7 @@ fn request(path: String, method: Method) -> String {
     buffer
 }
 
-pub fn translate(target_language: String, query_text: String) -> String {
+pub fn translate(target_language: &String, query_text: &String) -> String {
     let path = format!("?q={}&target={}&format=text", query_text, target_language);
     let buffer = request(path, Method::Post);
     let response = serde_json::from_str::<Translate>(&buffer).unwrap();
