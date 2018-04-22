@@ -51,8 +51,14 @@ fn main() {
         let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
         let query_text = query_words.join(" ");
         let translated = translate::translate(&target_language, &query_text);
-        let definitions = oxford::definitions(&target_language, &query_text);
-        format!("{}\n\n{}", translated, definitions)
+
+        if query_words.len() == 1 {
+            let head_of_query = query_words.first().unwrap();
+            let definitions = oxford::definitions(&head_of_query);
+            format!("Result: {}\n\n{}", translated, definitions)
+        } else {
+            format!("{}", translated)
+        }
     };
     println!("{}", result);
 }

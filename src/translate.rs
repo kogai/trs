@@ -45,7 +45,7 @@ enum Method {
 }
 
 fn request(path: String, method: Method) -> String {
-    let http_client = Client::new();
+    let http_client = Client::new().expect("Create HTTP client is failed");
     let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, API_KEY);
     let mut buffer = String::new();
     match method {
@@ -59,7 +59,7 @@ fn request(path: String, method: Method) -> String {
     buffer
 }
 
-pub fn translate(target_language: String, query_text: String) -> String {
+pub fn translate(target_language: &String, query_text: &String) -> String {
     let path = format!("?q={}&target={}&format=text", query_text, target_language);
     let buffer = request(path, Method::Post);
     let response = serde_json::from_str::<Translate>(&buffer).unwrap();

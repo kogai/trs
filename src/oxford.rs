@@ -7,11 +7,11 @@ use tokio_core::reactor::Core;
 header! { (AppId, "app_id") => [String] }
 header! { (AppKey, "app_key") => [String] }
 
-pub fn definitions(target_language: &String, query_text: &String) -> String {
-  enumlate_examples(call(target_language, query_text))
+pub fn definitions(query_text: &String) -> String {
+  enumlate_examples(call(query_text))
 }
 
-fn call(target_language: &String, query_text: &String) -> models::RetrieveEntry {
+fn call(query_text: &String) -> models::RetrieveEntry {
   let mut core = Core::new().unwrap();
   let handle = core.handle();
   let client = Client::configure()
@@ -23,7 +23,7 @@ fn call(target_language: &String, query_text: &String) -> models::RetrieveEntry 
   let work = api_client
     .dictionary_entries_api()
     .entries_source_lang_word_id_get(
-      target_language,
+      "en",
       query_text,
       env!("OXFORD_API_ID"),
       env!("OXFORD_API_KEY"),
@@ -53,13 +53,13 @@ fn enumlate_examples(json: models::RetrieveEntry) -> String {
                     .iter()
                     .map(|sense| match (sense.definitions(), sense.examples()) {
                       (Some(definitions), Some(examples)) => format!(
-                        "Definition: {}\n\nExamples: {}",
-                        definitions.join("\n\n"),
+                        "Definition:\n{}\n\nExamples:\n{}",
+                        definitions.join("\n"),
                         examples
                           .iter()
                           .map(|example| example.text().to_owned())
                           .collect::<Vec<String>>()
-                          .join("\n\n")
+                          .join("\n")
                       ),
                       (Some(definitions), _) => format!("Definition: {}", definitions.join("\n\n")),
                       (_, Some(examples)) => format!(
@@ -73,14 +73,14 @@ fn enumlate_examples(json: models::RetrieveEntry) -> String {
                       (_, _) => "".to_owned(),
                     })
                     .collect::<Vec<String>>()
-                    .join("\n"),
+                    .join("\n\n"),
                   _ => "".to_owned(),
                 })
                 .collect::<Vec<String>>()
                 .join("\n"),
               _ => "".to_owned(),
             };
-            format!("Lexixal category [{}]\n\n{}", lexical_category, entries)
+            format!("●Lexixal category [{}]\n\n{}", lexical_category, entries)
           })
           .collect::<Vec<String>>()
           .join("\n\n\n")
