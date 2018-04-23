@@ -13,4 +13,5 @@ serde = "1.0.0"
 serde_derive = "1.0.0"
 serde_json = "1.0.0"
 clap = "~2.31.2"
+termion = "1.0"
 oxford_dictionary_api_rs = { git = "https://github.com/kogai/oxford-dictinary-api-rs" }

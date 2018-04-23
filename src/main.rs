@@ -4,6 +4,7 @@ extern crate serde_derive;
 extern crate clap;
 #[macro_use]
 extern crate hyper;
+extern crate termion;
 extern crate futures;
 extern crate hyper_tls;
 extern crate oxford_dictionary_api_rs;
