@@ -4,6 +4,7 @@ use hyper::Client;
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use std::fmt::{self, Display, Formatter};
+use termion::{color, style};
 
 header! { (AppId, "app_id") => [String] }
 header! { (AppKey, "app_key") => [String] }
@@ -60,26 +61,30 @@ impl Display for Definition {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(
       f,
-      "●Lexixal category [{}]\n{}",
+      "{}●{} Lexixal category [{}{}{}]\n{}",
+      color::Fg(color::Green),
+      color::Fg(color::White),
+      style::Bold,
       self.lexical_category,
+      style::Reset,
       self
         .definition_and_examples
         .iter()
         .map(|d_and_e| match d_and_e {
           &(Some(ref d), Some(ref e)) => format!(
             r"
-Definition: {}
-Example: {}",
+  Definition: {}
+  Example: {}",
             d, e
           ),
           &(Some(ref d), None) => format!(
             r"
-Definition: {}",
+  Definition: {}",
             d
           ),
           &(None, Some(ref e)) => format!(
             r"
-Example: {}",
+  Example: {}",
             e
           ),
           _ => format!(""),
