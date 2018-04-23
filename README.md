@@ -6,28 +6,27 @@ Command-line interface for Google Translate.
 
 Set environemnt variables listed at `.envrc.template`
 
-GOOGLE_* can get from here.
+GOOGLE\_\* can get from here.
 https://cloud.google.com/translate/docs/
 
-OXFORD_* can get from here.
+OXFORD\_\* can get from here.
 https://developer.oxforddictionaries.com/
 
 And then, build it yourself using GNU Make.
 
 ```
-$ cargo build --release
-$ cp target/release/trs bin/
+$ make
 ```
 
-Finally, set a $PATH to `/path/to/repository/bin`
+Finally, set a $PATH to `/path/to/repository/bin/{Darwin, Linux}`
 
 That's all.
 
 ## Usage
 
-1. Create Google translate API KEY in Google cloud platform
-1. Set API KEY as environment variable "GOOGLE_CLOUD_PLATFORM_API_KEY"
-1. Build executable with `cargo build --release`
+1.  Create Google translate API KEY in Google cloud platform
+1.  Set API KEY as environment variable "GOOGLE_CLOUD_PLATFORM_API_KEY"
+1.  Build executable with `cargo build --release`
 
 ```bash
 ./target/release/trs -q Hello world
@@ -36,6 +35,6 @@ That's all.
 ./target/release/trs -q こんにちは 世界 -t en
 // Hello world
 
-./target/release/trs --version 
-./target/release/trs --help 
-``` 
+./target/release/trs --version
+./target/release/trs --help
+```
