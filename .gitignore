@@ -1,5 +1,4 @@
 target/
 **/*.rs.bk
 .envrc
-/bin/*
-!/bin/.keep
+/bin
