@@ -10,6 +10,9 @@ OXFORD_API_KEY := "${OXFORD_API_KEY}"
 all: bin/Darwin/$(NAME) bin/Linux/$(NAME)
 
 bin/Darwin/$(NAME): Cargo.toml $(SRC)
+	GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) && \
+	OXFORD_API_ID=$(OXFORD_API_ID) && \
+	OXFORD_API_KEY=$(OXFORD_API_KEY) && \
 	cargo build --release
 	mkdir -p bin/Darwin
 	cp target/release/$(NAME) bin/Darwin/$(NAME)
