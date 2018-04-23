@@ -41,7 +41,7 @@ fn call(query_text: &String) -> models::RetrieveEntry {
   }
 }
 
-type DefinitionAndExample = (Option<String>, Option<String>);
+type DefinitionAndExample = (Vec<String>, Vec<String>);
 
 struct Definition {
   lexical_category: String,
@@ -70,24 +70,26 @@ impl Display for Definition {
       self
         .definition_and_examples
         .iter()
-        .map(|d_and_e| match d_and_e {
-          &(Some(ref d), Some(ref e)) => format!(
-            r"
-  Definition: {}
-  Example: {}",
-            d, e
-          ),
-          &(Some(ref d), None) => format!(
-            r"
-  Definition: {}",
-            d
-          ),
-          &(None, Some(ref e)) => format!(
-            r"
-  Example: {}",
-            e
-          ),
-          _ => format!(""),
+        .map(|&(ref ds, ref es)| {
+          let d = ds.join("\n    ");
+          let e = es.join("\n    ");
+          if e.len() == 0 {
+            format!(
+              r"
+  Definition:
+    {}",
+              ds.join("\n")
+            )
+          } else {
+            format!(
+              r"
+  Definition:
+    {}
+  Example:
+    {}",
+              d, e
+            )
+          }
         })
         .collect::<Vec<String>>()
         .join("\n")
@@ -113,27 +115,21 @@ fn enumlate_examples(json: models::RetrieveEntry) -> Vec<Definition> {
                     .iter()
                     .map(|sense| match (sense.definitions(), sense.examples()) {
                       (Some(definitions), Some(examples)) => (
-                        Some(definitions.join("\n")),
-                        Some(
-                          examples
-                            .iter()
-                            .map(|example| example.text().to_owned())
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                        ),
+                        definitions.to_owned(),
+                        examples
+                          .iter()
+                          .map(|example| example.text().to_owned())
+                          .collect::<Vec<String>>(),
                       ),
-                      (Some(definitions), _) => (Some(definitions.join("\n")), None),
+                      (Some(definitions), _) => (definitions.to_owned(), Vec::new()),
                       (_, Some(examples)) => (
-                        None,
-                        Some(
-                          examples
-                            .iter()
-                            .map(|example| example.text().to_owned())
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                        ),
+                        Vec::new(),
+                        examples
+                          .iter()
+                          .map(|example| example.text().to_owned())
+                          .collect::<Vec<String>>(),
                       ),
-                      (_, _) => (None, None),
+                      (_, _) => (Vec::new(), Vec::new()),
                     })
                     .collect(),
                   _ => Vec::new(),
