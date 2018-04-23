@@ -40,25 +40,32 @@ fn main() {
                 .short("t")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("dictionary")
+                .help("See formal definition of word")
+                .short("d")
+                .takes_value(true),
+        )
         .get_matches();
 
     let target_language =
         value_t!(matches.value_of("target_language"), String).unwrap_or("ja".to_owned());
 
-    let result = if matches.is_present("languages") {
-        translate::language(target_language)
-    } else {
+    if matches.is_present("languages") {
+        let result = translate::language(&target_language);
+        println!("{}", result);
+    }
+
+    if matches.is_present("query_text") {
         let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
         let query_text = query_words.join(" ");
         let translated = translate::translate(&target_language, &query_text);
-
-        if query_words.len() == 1 {
-            let head_of_query = query_words.first().unwrap();
-            let definitions = oxford::definitions(&head_of_query);
-            format!("Result: {}\n\n{}", translated, definitions)
-        } else {
-            format!("{}", translated)
-        }
+        println!("{}", translated);
     };
-    println!("{}", result);
+
+    if matches.is_present("dictionary") {
+        let query_word = value_t!(matches.value_of("dictionary"), String).unwrap_or("".to_owned());
+        let definitions = oxford::definitions(&query_word);
+        println!("{}", definitions);
+    };
 }

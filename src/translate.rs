@@ -92,7 +92,7 @@ enum Language {
     Error { error: Errors },
 }
 
-pub fn language(target_language: String) -> String {
+pub fn language(target_language: &String) -> String {
     let path = format!("{}?target={}", API_LANGUAGES, target_language);
     let buffer = request(path, Method::Get);
 
