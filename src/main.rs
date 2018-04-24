@@ -4,17 +4,18 @@ extern crate serde_derive;
 extern crate clap;
 #[macro_use]
 extern crate hyper;
-extern crate termion;
 extern crate futures;
 extern crate hyper_tls;
 extern crate oxford_dictionary_api_rs;
 extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
+extern crate termion;
 extern crate tokio_core;
 
 mod oxford;
 mod translate;
+mod utils;
 
 use clap::{App, Arg};
 
@@ -43,9 +44,10 @@ fn main() {
         )
         .arg(
             Arg::with_name("dictionary")
-                .help("See formal definition of word")
+                .help("See formal English definition of the words")
                 .short("d")
-                .takes_value(true),
+                .takes_value(true)
+                .multiple(true),
         )
         .get_matches();
 
@@ -65,7 +67,8 @@ fn main() {
     };
 
     if matches.is_present("dictionary") {
-        let query_word = value_t!(matches.value_of("dictionary"), String).unwrap_or("".to_owned());
+        let query_words = values_t!(matches.values_of("dictionary"), String).unwrap_or(vec![]);
+        let query_word = utils::space_to_underscore(&query_words.join(" "));
         let definitions = oxford::definitions(&query_word);
         println!("{}", definitions);
     };
