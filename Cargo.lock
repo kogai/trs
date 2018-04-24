@@ -519,7 +519,7 @@ dependencies = [
 [[package]]
 name = "oxford_dictionary_api_rs"
 version = "1.0.0"
-source = "git+https://github.com/kogai/oxford-dictinary-api-rs#2466f5ded1c6683bc4429c5bd929943324f2b1c2"
+source = "git+https://github.com/kogai/oxford-dictinary-api-rs#8e25fffab0a8cf02fe7affdf3807c11263173ed7"
 dependencies = [
  "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
