@@ -61,7 +61,7 @@ impl Display for Definition {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(
       f,
-      "{}●{} Lexixal category [{}{}{}]\n{}",
+      "{}●{} Lexical category [{}{}{}]\n{}",
       color::Fg(color::Green),
       color::Fg(color::White),
       style::Bold,
