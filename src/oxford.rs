@@ -6,16 +6,18 @@ use tokio_core::reactor::Core;
 use std::fmt::{self, Display, Formatter};
 use termion::{color, style};
 use std::process::exit;
+use utils::space_to_underscore;
 
-pub fn definitions(query_text: &String) -> String {
-  enumlate_examples(call(query_text))
+pub fn definitions(query_words: Vec<String>) -> String {
+  enumlate_examples(call(query_words))
     .iter()
     .map(|d| format!("{}", d))
     .collect::<Vec<String>>()
     .join("\n\n")
 }
 
-fn call(query_text: &String) -> models::RetrieveEntry {
+fn call(query_words: Vec<String>) -> models::RetrieveEntry {
+  let query_text = space_to_underscore(&query_words.join(" "));
   let mut core = Core::new().unwrap();
   let handle = core.handle();
   let client = Client::configure()
@@ -28,14 +30,24 @@ fn call(query_text: &String) -> models::RetrieveEntry {
     .dictionary_entries_api()
     .entries_source_lang_word_id_get(
       "en",
-      query_text,
+      &query_text,
       env!("OXFORD_API_ID"),
       env!("OXFORD_API_KEY"),
     );
 
   match core.run(work) {
     Ok(json) => json,
-    Err(e) => unreachable!("Perhaps JSON serialize error occurred.\n{:?}", e),
+    Err(_) => {
+      println!(
+        "{}●{} [{}{}{}] was not found in Oxford dictionary",
+        color::Fg(color::Green),
+        color::Fg(color::White),
+        style::Bold,
+        &query_words.join(" "),
+        style::Reset
+      );
+      exit(0);
+    }
   }
 }
 
