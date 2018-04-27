@@ -2,9 +2,8 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate hyper;
 extern crate futures;
+extern crate hyper;
 extern crate hyper_tls;
 extern crate oxford_dictionary_api_rs;
 extern crate reqwest;

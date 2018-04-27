@@ -5,9 +5,7 @@ use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use std::fmt::{self, Display, Formatter};
 use termion::{color, style};
-
-header! { (AppId, "app_id") => [String] }
-header! { (AppKey, "app_key") => [String] }
+use std::process::exit;
 
 pub fn definitions(query_text: &String) -> String {
   enumlate_examples(call(query_text))
