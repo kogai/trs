@@ -1,18 +1,22 @@
 use std::slice;
 use std::collections::HashMap;
 
-enum Tree {
+#[derive(Debug)]
+enum HaffmanTree {
   Leaf(u8),
-  Node { left: Box<Tree>, right: Box<Tree> },
+  Node {
+    left: Box<HaffmanTree>,
+    right: Box<HaffmanTree>,
+  },
 }
 
-impl Tree {
+impl HaffmanTree {
   pub fn new(source: &String) -> Self {
     unimplemented!();
   }
 
-  pub fn count(source: &String) -> Vec<([u8; 2], u8)> {
-    let mut xs = source
+  pub fn count(source: &String) -> HashMap<char, ([u8; 2], u8)> {
+    source
       .chars()
       .fold(HashMap::new(), |mut acc: HashMap<char, (char, u8)>, c| {
         if let Some(&(_, n)) = acc.get(&c) {
@@ -26,11 +30,9 @@ impl Tree {
       .map(|(_, (c, n))| {
         let mut buf = [0; 2];
         c.encode_utf8(&mut buf);
-        (buf, n)
+        (c, (buf, n))
       })
-      .collect::<Vec<([u8; 2], u8)>>();
-    xs.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
-    xs
+      .collect()
   }
 }
 
@@ -43,19 +45,22 @@ mod test {
     let x = "AAAAABBBBCCCDDE".to_owned();
     assert_eq!(
       vec![
-        ([69, 0], 1),
-        ([68, 0], 2),
-        ([67, 0], 3),
-        ([66, 0], 4),
-        ([65, 0], 5),
-      ],
-      Tree::count(&x.to_owned())
+        ('A', ([65, 0], 5)),
+        ('B', ([66, 0], 4)),
+        ('C', ([67, 0], 3)),
+        ('D', ([68, 0], 2)),
+        ('E', ([69, 0], 1)),
+      ].iter()
+        .cloned()
+        .collect::<HashMap<char, ([u8; 2], u8)>>(),
+      HaffmanTree::count(&x.to_owned())
     );
   }
 
   #[test]
-  fn test_haffman_coding() {
-    let x = "AAAAABBBBCCCDDE";
-    assert_eq!("", x);
+  fn test_haffman_tree() {
+    let x = HaffmanTree::new(&"AAAAABBBBCCCDDE".to_owned());
+    println!("{:?}", x);
+    // assert_eq!("", x);
   }
 }
