@@ -34,6 +34,6 @@ $ trs -q こんにちは 世界 -t en
 $ trs -d dog
 # Show definitions and example to use the word
 
-trs --version
-trs --help
+$ trs --version
+$ trs --help
 ```
