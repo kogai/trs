@@ -17,6 +17,43 @@ enum HaffmanTree {
 }
 
 impl HaffmanTree {
+  fn get_codes(&self, code: &String, mut code_table: &mut HashMap<char, String>) {
+    use self::HaffmanTree::*;
+
+    match self {
+      &Leaf((codes, _)) => {
+        let raw_code = *codes.first().unwrap();
+        code_table.insert(char::from(raw_code), code.to_owned());
+      }
+      &Node {
+        ref zero, ref one, ..
+      } => {
+        zero.get_codes(&format!("{}0", code), &mut code_table);
+        one.get_codes(&format!("{}1", code), &mut code_table);
+      }
+    }
+  }
+
+  pub fn get_table(&self) -> HashMap<char, String> {
+    use self::HaffmanTree::*;
+
+    let mut code_table = HashMap::new();
+    match self {
+      &Leaf((codes, _)) => {
+        let code = *codes.first().unwrap();
+        code_table.insert(char::from(code), "0".to_owned());
+        code_table
+      }
+      &Node {
+        ref zero, ref one, ..
+      } => {
+        zero.get_codes(&"0".to_owned(), &mut code_table);
+        one.get_codes(&"1".to_owned(), &mut code_table);
+        code_table
+      }
+    }
+  }
+
   fn get_probability(&self) -> u8 {
     use self::HaffmanTree::*;
     match self {
@@ -96,11 +133,6 @@ mod test {
     );
   }
 
-  // 1000010
-  // 1000011
-  // 1000101
-  // 1000001
-  // 1000100
   #[test]
   fn test_haffman_simple_tree() {
     use self::HaffmanTree::*;
@@ -156,6 +188,29 @@ mod test {
         }),
         probability: 15,
       },
+      x
+    );
+  }
+
+  #[test]
+  fn test_haffman_table() {
+    let x = HaffmanTree::new(&"AAAAABBBBCCCDDE".to_owned()).get_table();
+    /*
+    1000010
+    1000011
+    1000101
+    1000001
+    1000100
+     */
+    assert_eq!(
+      vec![
+        ('A', "00".to_owned()),
+        ('B', "01".to_owned()),
+        ('C', "11".to_owned()),
+        ('D', "100".to_owned()),
+        ('E', "101".to_owned()),
+      ].into_iter()
+        .collect::<HashMap<char, String>>(),
       x
     );
   }
