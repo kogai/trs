@@ -6,7 +6,7 @@ struct Probability {
 }
 */
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
   Leaf(([u8; 2], u8)),
   Node {
@@ -17,37 +17,41 @@ enum HaffmanTree {
 }
 
 impl HaffmanTree {
-  pub fn new(source: &String) -> Self {
-    let length_of_chars = Self::count(source);
-    match (length_of_chars.split_first(), length_of_chars.split_first()) {
-      (Some((&(_, first), _)), Some((&(_, second), xs))) => {
-        let root = if first.1 >= second.1 {
-          HaffmanTree::Node {
-            zero: Box::new(HaffmanTree::Leaf(first)),
-            one: Box::new(HaffmanTree::Leaf(second)),
-            probability: first.1 + second.1,
-          }
-        } else {
-          HaffmanTree::Node {
-            zero: Box::new(HaffmanTree::Leaf(second)),
-            one: Box::new(HaffmanTree::Leaf(first)),
-            probability: first.1 + second.1,
-          }
-        };
-        xs.iter().fold(root, |acc, &(_, x)| {
-          acc.insert(x)
-          // println!("{:?}", acc);
-          // unimplemented!();
-        })
-      }
-      (Some((&(_, first), _)), None) => HaffmanTree::Leaf(first),
-      (_, _) => unreachable!("There not exists any characters: [{}]", source),
+  fn get_probability(&self) -> u8 {
+    use self::HaffmanTree::*;
+    match self {
+      &Leaf((_, p)) => p,
+      &Node { probability, .. } => probability,
     }
   }
 
-  fn insert(&self, x: ([u8; 2], u8)) -> Self {
-    let (codes, count) = x;
-    unimplemented!();
+  pub fn new(source: &String) -> Self {
+    let leafs: Vec<HaffmanTree> = Self::count(source)
+      .iter()
+      .map(|&(_, c)| HaffmanTree::Leaf(c))
+      .collect();
+    Self::build_tree(leafs)
+  }
+
+  fn build_tree(trees: Vec<Self>) -> Self {
+    match trees.len() {
+      0 => unreachable!("Could not found trees, something become wrong."),
+      1 => trees.first().unwrap().clone(),
+      _ => {
+        let mut trees = trees;
+        trees.sort_by(|a, b| a.get_probability().cmp(&b.get_probability()));
+        let mut remains = trees.split_off(2);
+        let small_fst = trees.get(0).unwrap();
+        let small_snd = trees.get(1).unwrap();
+        let new_tree = HaffmanTree::Node {
+          zero: Box::new(small_snd.clone()),
+          one: Box::new(small_fst.clone()),
+          probability: small_fst.get_probability() + small_snd.get_probability(),
+        };
+        remains.push(new_tree);
+        HaffmanTree::build_tree(remains)
+      }
+    }
   }
 
   fn count(source: &String) -> Vec<(char, ([u8; 2], u8))> {
@@ -68,7 +72,7 @@ impl HaffmanTree {
         (c, (buf, n))
       })
       .collect::<Vec<(char, ([u8; 2], u8))>>();
-    length_of_chars.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
+    length_of_chars.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
     length_of_chars
   }
 }
@@ -82,25 +86,77 @@ mod test {
     let x = "AAAAABBBBCCCDDE".to_owned();
     assert_eq!(
       vec![
-        ('A', ([65, 0], 5)),
-        ('B', ([66, 0], 4)),
-        ('C', ([67, 0], 3)),
-        ('D', ([68, 0], 2)),
         ('E', ([69, 0], 1)),
+        ('D', ([68, 0], 2)),
+        ('C', ([67, 0], 3)),
+        ('B', ([66, 0], 4)),
+        ('A', ([65, 0], 5)),
       ],
       HaffmanTree::count(&x.to_owned())
     );
   }
 
+  // 1000010
+  // 1000011
+  // 1000101
+  // 1000001
+  // 1000100
+  #[test]
+  fn test_haffman_simple_tree() {
+    use self::HaffmanTree::*;
+    let x = HaffmanTree::new(&"AAB".to_owned());
+    println!("{:#?}", x);
+    assert_eq!(
+      Node {
+        zero: Box::new(Leaf(([65, 0], 2))),
+        one: Box::new(Leaf(([66, 0], 1))),
+        probability: 3,
+      },
+      x
+    );
+  }
+
+  #[test]
+  fn test_haffman_bit_complecated_tree() {
+    use self::HaffmanTree::*;
+    let x = HaffmanTree::new(&"AAABBC".to_owned());
+    assert_eq!(
+      Node {
+        zero: Box::new(Node {
+          zero: Box::new(Leaf(([66, 0], 2))),
+          one: Box::new(Leaf(([67, 0], 1))),
+          probability: 3,
+        }),
+        one: Box::new(Leaf(([65, 0], 3))),
+        probability: 6,
+      },
+      x
+    );
+  }
+
   #[test]
   fn test_haffman_tree() {
+    use self::HaffmanTree::*;
     let x = HaffmanTree::new(&"AAAAABBBBCCCDDE".to_owned());
-    println!("{:?}", x);
-    // 1000010
-    // 1000011
-    // 1000101
-    // 1000001
-    // 1000100
-    // assert_eq!("", x);
+    assert_eq!(
+      Node {
+        zero: Box::new(Node {
+          zero: Box::new(Leaf(([65, 0], 5))),
+          one: Box::new(Leaf(([66, 0], 4))),
+          probability: 9,
+        }),
+        one: Box::new(Node {
+          zero: Box::new(Node {
+            zero: Box::new(Leaf(([68, 0], 2))),
+            one: Box::new(Leaf(([69, 0], 1))),
+            probability: 3,
+          }),
+          one: Box::new(Leaf(([67, 0], 3))),
+          probability: 6,
+        }),
+        probability: 15,
+      },
+      x
+    );
   }
 }
