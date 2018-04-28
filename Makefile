@@ -12,8 +12,8 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	OXFORD_API_ID=$(OXFORD_API_ID) && \
 	OXFORD_API_KEY=$(OXFORD_API_KEY) && \
 	cargo build --release
-	mkdir -p bin/Darwin
-	cp target/release/$(NAME) bin/Darwin/$(NAME)
+	mkdir -p bin/$(OS)
+	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
 bin/Docker/$(NAME): Cargo.toml $(SRC)
 	docker build -t $(NAME) .
@@ -22,8 +22,8 @@ bin/Docker/$(NAME): Cargo.toml $(SRC)
 		-e OXFORD_API_ID=$(OXFORD_API_ID) \
 		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
 		-t $(NAME)
-	mkdir -p bin/Linux
-	cp target/release/$(NAME) bin/Linux/$(NAME)
+	mkdir -p bin/$(OS)
+	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
 .PHONY: clean
 clean:
