@@ -12,6 +12,7 @@ extern crate serde_json;
 extern crate termion;
 extern crate tokio_core;
 
+mod cache;
 mod oxford;
 mod translate;
 mod utils;
