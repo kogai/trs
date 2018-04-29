@@ -1,12 +1,45 @@
+use std::env;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::collections::HashMap;
 use serde_json;
 
-pub struct FSCache(HashMap<String, String>);
+const CACHE_FILE: &'static str = ".trs-cache";
 
+pub struct FSCache(HashMap<String, String>);
 impl FSCache {
+  #[cfg(not(debug_assertions))]
+  fn get_cache() -> PathBuf {
+    env::home_dir()
+      .and_then(|p| Some(p.join(CACHE_FILE)))
+      .unwrap()
+  }
+
+  #[cfg(debug_assertions)]
+  fn get_cache() -> PathBuf {
+    env::current_dir()
+      .and_then(|p| Ok(p.join(CACHE_FILE)))
+      .unwrap()
+  }
+
   pub fn new() -> Self {
-    // TODO: Decompress from file system and  construct hashmap
-    unimplemented!();
+    let cache_file = Self::get_cache();
+    let cache = match fs::File::open(&cache_file) {
+      Ok(mut file) => {
+        let mut buf = Vec::new();
+        let _ = file.read_to_end(&mut buf);
+        // TODO: Decompress from file system and construct hashmap
+        println!("{:?}", buf);
+        serde_json::from_slice::<HashMap<String, String>>(&buf.as_slice())
+          .expect("Cache file seems did not save correctly")
+      }
+      Err(_) => {
+        let _ = fs::File::create(cache_file);
+        HashMap::new()
+      }
+    };
+    FSCache(cache)
   }
 
   pub fn get(&self, key: &String) -> Option<String> {
@@ -16,6 +49,19 @@ impl FSCache {
   pub fn set(&mut self, key: &String, value: &String) {
     self.0.insert(key.to_owned(), value.to_owned());
     // TODO: Compress and save to file system
+    let _ = match (
+      fs::File::create(&Self::get_cache()),
+      serde_json::to_vec(&self.0),
+    ) {
+      (Ok(mut file), Ok(mut buf)) => {
+        let _ = file.write_all(&mut buf);
+      }
+      (Err(e), _) => unreachable!(
+        "Something wrong, cache file did not initialize correctly\n{:?}",
+        e
+      ),
+      (_, Err(e)) => unreachable!("Can not parse cache data correctly\n{:?}", e),
+    };
   }
 
   fn compress(&self, words: &String) {}

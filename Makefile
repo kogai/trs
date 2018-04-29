@@ -25,6 +25,15 @@ bin/Docker/$(NAME): Cargo.toml $(SRC)
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
+.PHONY: cache
+cache:
+	rm -f .trs-cache
+	GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) && \
+	OXFORD_API_ID=$(OXFORD_API_ID) && \
+	OXFORD_API_KEY=$(OXFORD_API_KEY) && \
+	cargo run -- -d dog
+	cat .trs-cache
+
 .PHONY: clean
 clean:
 	cargo clean
