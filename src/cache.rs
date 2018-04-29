@@ -1,10 +1,26 @@
 use std::collections::HashMap;
+use serde_json;
 
-/* TODO: It would be better to implement probability helper to treat it easily
-struct Probability {
-  raw: char,
+pub struct FSCache(HashMap<String, String>);
+
+impl FSCache {
+  pub fn new() -> Self {
+    // TODO: Decompress from file system and  construct hashmap
+    unimplemented!();
+  }
+
+  pub fn get(&self, key: &String) -> Option<String> {
+    self.0.get(key).cloned()
+  }
+
+  pub fn set(&mut self, key: &String, value: &String) {
+    self.0.insert(key.to_owned(), value.to_owned());
+    // TODO: Compress and save to file system
+  }
+
+  fn compress(&self, words: &String) {}
+  fn decompress(&self) {}
 }
-*/
 
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {

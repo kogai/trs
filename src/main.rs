@@ -65,10 +65,18 @@ fn main() {
         let translated = translate::translate(&target_language, &query_text);
         println!("{}", translated);
     };
-
+    let mut fs_cache = cache::FSCache::new();
     if matches.is_present("dictionary") {
         let query_words = values_t!(matches.values_of("dictionary"), String).unwrap_or(vec![]);
-        let definitions = oxford::definitions(query_words);
+        let escaped_query_words = utils::space_to_underscore(&query_words.join(" "));
+        let definitions = match fs_cache.get(&escaped_query_words) {
+            Some(definitions) => definitions,
+            None => {
+                let new_def = oxford::definitions(query_words);
+                fs_cache.set(&escaped_query_words, &new_def);
+                new_def
+            }
+        };
         println!("{}", definitions);
     };
 }
