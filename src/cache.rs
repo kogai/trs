@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 /* TODO: It would be better to implement probability helper to treat it easily
 struct Probability {
@@ -71,16 +70,6 @@ impl HaffmanTree {
     Self::build_tree(leafs)
   }
 
-  fn compress(source: &String) -> String {
-    format!("{:b}", Self::new(source))
-  }
-
-  /*
-  fn decompress(source: &[u8]) -> String {
-    unimplemented!();
-  }
-  */
-
   fn build_tree(trees: Vec<Self>) -> Self {
     match trees.len() {
       0 => unreachable!("Could not found trees, something become wrong."),
@@ -125,15 +114,24 @@ impl HaffmanTree {
   }
 }
 
-impl fmt::Binary for HaffmanTree {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    let table = self.get_table();
-    unimplemented!();
-    // let val = self.0;
-
-    // write!(f, "{:b}", val) // delegate to i32's implementation
-  }
+fn compress(source: &String) -> String {
+  let tree = HaffmanTree::new(source);
+  let table = tree.get_table();
+  let binaries = source.chars().fold("".to_owned(), |acc, c| {
+    let code = table
+      .get(&c)
+      .expect("Haffman-table should always all characters into code");
+    format!("{}{}", acc, code)
+  });
+  // unimplemented!();
+  binaries
 }
+
+/*
+  fn decompress(source: &[u8]) -> String {
+    unimplemented!();
+  }
+  */
 
 #[cfg(test)]
 mod test {
@@ -237,12 +235,24 @@ mod test {
   }
 
   #[test]
+  fn test_compress_effectively() {
+    let expect = "AAAAABBBBCCCDDE".to_owned();
+    let compressed = compress(&expect);
+    let not_compressed = format!(
+      "{:?}",
+      expect
+        .as_bytes()
+        .iter()
+        .fold("".to_owned(), |acc, b| format!("{}{:b}", acc, b))
+    );
+    assert!((compressed.len() as f32 / not_compressed.len() as f32) < 0.5);
+    assert!(compressed.len() < not_compressed.len());
+  }
+
+  #[test]
   fn test_cache_compress() {
     let expect = "AAAAABBBBCCCDDE".to_owned();
-    let x = HaffmanTree::compress(&expect);
-    // let mut buf: &[u8] = &mut [];
-    // let x = HaffmanTree::compress(&expect, buf);
-    println!("{:?}", &x);
-    // assert_eq!(expect, &x);
+    let x = compress(&expect);
+    assert_eq!("000000000001010101111111100100101".to_owned(), x);
   }
 }
