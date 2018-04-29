@@ -115,23 +115,50 @@ impl HaffmanTree {
 }
 
 fn compress(source: &String) -> String {
-  let tree = HaffmanTree::new(source);
-  let table = tree.get_table();
-  let binaries = source.chars().fold("".to_owned(), |acc, c| {
+  let table = HaffmanTree::new(source).get_table();
+  source.chars().fold("".to_owned(), |acc, c| {
     let code = table
       .get(&c)
-      .expect("Haffman-table should always all characters into code");
+      .expect("Haffman-table should always to code all characters");
     format!("{}{}", acc, code)
-  });
-  // unimplemented!();
-  binaries
+  })
 }
 
-/*
-  fn decompress(source: &[u8]) -> String {
-    unimplemented!();
+fn decompress(source: &String, table: &HashMap<char, String>) -> String {
+  let invert_table = table
+    .into_iter()
+    .map(|(k, v)| (v.clone(), k.clone()))
+    .collect::<HashMap<String, char>>();
+
+  fn decompress_impl(
+    code_buf: &String,
+    result_buf: &String,
+    source: &String,
+    table: &HashMap<String, char>,
+  ) -> String {
+    if source.len() == 0 && code_buf.len() == 0 {
+      return result_buf.to_owned();
+    };
+    match table.get(code_buf) {
+      Some(next_char) => decompress_impl(
+        &"".to_owned(),
+        &format!("{}{}", result_buf, next_char),
+        source,
+        table,
+      ),
+      None => {
+        let (c, next) = source.split_at(1);
+        decompress_impl(
+          &format!("{}{}", code_buf, c),
+          result_buf,
+          &next.to_owned(),
+          table,
+        )
+      }
+    }
   }
-  */
+  decompress_impl(&"".to_owned(), &"".to_owned(), source, &invert_table)
+}
 
 #[cfg(test)]
 mod test {
@@ -250,9 +277,20 @@ mod test {
   }
 
   #[test]
-  fn test_cache_compress() {
+  fn test_compress() {
+    assert_eq!(
+      "000000000001010101111111100100101".to_owned(),
+      compress(&"AAAAABBBBCCCDDE".to_owned())
+    );
+  }
+
+  #[test]
+  fn test_decompress() {
     let expect = "AAAAABBBBCCCDDE".to_owned();
-    let x = compress(&expect);
-    assert_eq!("000000000001010101111111100100101".to_owned(), x);
+    let table = HaffmanTree::new(&expect).get_table();
+    assert_eq!(
+      expect,
+      decompress(&"000000000001010101111111100100101".to_owned(), &table)
+    );
   }
 }
