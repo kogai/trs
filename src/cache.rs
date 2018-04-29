@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 /* TODO: It would be better to implement probability helper to treat it easily
 struct Probability {
@@ -34,7 +35,7 @@ impl HaffmanTree {
     }
   }
 
-  pub fn get_table(&self) -> HashMap<char, String> {
+  fn get_table(&self) -> HashMap<char, String> {
     use self::HaffmanTree::*;
 
     let mut code_table = HashMap::new();
@@ -62,13 +63,23 @@ impl HaffmanTree {
     }
   }
 
-  pub fn new(source: &String) -> Self {
+  fn new(source: &String) -> Self {
     let leafs: Vec<HaffmanTree> = Self::count(source)
       .iter()
       .map(|&(_, c)| HaffmanTree::Leaf(c))
       .collect();
     Self::build_tree(leafs)
   }
+
+  fn compress(source: &String) -> String {
+    format!("{:b}", Self::new(source))
+  }
+
+  /*
+  fn decompress(source: &[u8]) -> String {
+    unimplemented!();
+  }
+  */
 
   fn build_tree(trees: Vec<Self>) -> Self {
     match trees.len() {
@@ -111,6 +122,16 @@ impl HaffmanTree {
       .collect::<Vec<(char, ([u8; 2], u8))>>();
     length_of_chars.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
     length_of_chars
+  }
+}
+
+impl fmt::Binary for HaffmanTree {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    let table = self.get_table();
+    unimplemented!();
+    // let val = self.0;
+
+    // write!(f, "{:b}", val) // delegate to i32's implementation
   }
 }
 
@@ -213,5 +234,15 @@ mod test {
         .collect::<HashMap<char, String>>(),
       x
     );
+  }
+
+  #[test]
+  fn test_cache_compress() {
+    let expect = "AAAAABBBBCCCDDE".to_owned();
+    let x = HaffmanTree::compress(&expect);
+    // let mut buf: &[u8] = &mut [];
+    // let x = HaffmanTree::compress(&expect, buf);
+    println!("{:?}", &x);
+    // assert_eq!(expect, &x);
   }
 }
