@@ -64,13 +64,15 @@ impl FSCache {
     };
   }
 
+  /*
   fn compress(&self, words: &String) {}
   fn decompress(&self) {}
+  */
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
-  Leaf(([u8; 2], u8)),
+  Leaf(([u8; 4], u8)),
   Node {
     zero: Box<HaffmanTree>,
     one: Box<HaffmanTree>,
@@ -153,7 +155,7 @@ impl HaffmanTree {
     }
   }
 
-  fn count(source: &String) -> Vec<(char, ([u8; 2], u8))> {
+  fn count(source: &String) -> Vec<(char, ([u8; 4], u8))> {
     let mut length_of_chars = source
       .chars()
       .fold(HashMap::new(), |mut acc: HashMap<char, (char, u8)>, c| {
@@ -166,11 +168,11 @@ impl HaffmanTree {
       })
       .into_iter()
       .map(|(_, (c, n))| {
-        let mut buf = [0; 2];
+        let mut buf = [0; 4];
         c.encode_utf8(&mut buf);
         (c, (buf, n))
       })
-      .collect::<Vec<(char, ([u8; 2], u8))>>();
+      .collect::<Vec<(char, ([u8; 4], u8))>>();
     length_of_chars.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
     length_of_chars
   }
@@ -231,11 +233,11 @@ mod test {
     let x = "AAAAABBBBCCCDDE".to_owned();
     assert_eq!(
       vec![
-        ('E', ([69, 0], 1)),
-        ('D', ([68, 0], 2)),
-        ('C', ([67, 0], 3)),
-        ('B', ([66, 0], 4)),
-        ('A', ([65, 0], 5)),
+        ('E', ([69, 0, 0, 0], 1)),
+        ('D', ([68, 0, 0, 0], 2)),
+        ('C', ([67, 0, 0, 0], 3)),
+        ('B', ([66, 0, 0, 0], 4)),
+        ('A', ([65, 0, 0, 0], 5)),
       ],
       HaffmanTree::count(&x.to_owned())
     );
@@ -248,8 +250,8 @@ mod test {
     println!("{:#?}", x);
     assert_eq!(
       Node {
-        zero: Box::new(Leaf(([65, 0], 2))),
-        one: Box::new(Leaf(([66, 0], 1))),
+        zero: Box::new(Leaf(([65, 0, 0, 0], 2))),
+        one: Box::new(Leaf(([66, 0, 0, 0], 1))),
         probability: 3,
       },
       x
@@ -263,11 +265,11 @@ mod test {
     assert_eq!(
       Node {
         zero: Box::new(Node {
-          zero: Box::new(Leaf(([66, 0], 2))),
-          one: Box::new(Leaf(([67, 0], 1))),
+          zero: Box::new(Leaf(([66, 0, 0, 0], 2))),
+          one: Box::new(Leaf(([67, 0, 0, 0], 1))),
           probability: 3,
         }),
-        one: Box::new(Leaf(([65, 0], 3))),
+        one: Box::new(Leaf(([65, 0, 0, 0], 3))),
         probability: 6,
       },
       x
@@ -281,17 +283,17 @@ mod test {
     assert_eq!(
       Node {
         zero: Box::new(Node {
-          zero: Box::new(Leaf(([65, 0], 5))),
-          one: Box::new(Leaf(([66, 0], 4))),
+          zero: Box::new(Leaf(([65, 0, 0, 0], 5))),
+          one: Box::new(Leaf(([66, 0, 0, 0], 4))),
           probability: 9,
         }),
         one: Box::new(Node {
           zero: Box::new(Node {
-            zero: Box::new(Leaf(([68, 0], 2))),
-            one: Box::new(Leaf(([69, 0], 1))),
+            zero: Box::new(Leaf(([68, 0, 0, 0], 2))),
+            one: Box::new(Leaf(([69, 0, 0, 0], 1))),
             probability: 3,
           }),
-          one: Box::new(Leaf(([67, 0], 3))),
+          one: Box::new(Leaf(([67, 0, 0, 0], 3))),
           probability: 6,
         }),
         probability: 15,
@@ -344,6 +346,18 @@ mod test {
       "000000000001010101111111100100101".to_owned(),
       compress(&"AAAAABBBBCCCDDE".to_owned())
     );
+  }
+
+  #[test]
+  fn test_real_data_compress() {
+    let mut buf = String::new();
+    let mut file = fs::File::open("./fixture/sample").unwrap();
+    let _ = file.read_to_string(&mut buf);
+    println!("{}", compress(&buf));
+    // assert_eq!(
+    //   "000000000001010101111111100100101".to_owned(),
+    //   compress(&"AAAAABBBBCCCDDE".to_owned())
+    // );
   }
 
   #[test]
