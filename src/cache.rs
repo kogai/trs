@@ -34,7 +34,7 @@ impl HaffmanTree {
     }
   }
 
-  pub fn get_table(&self) -> HashMap<char, String> {
+  fn get_table(&self) -> HashMap<char, String> {
     use self::HaffmanTree::*;
 
     let mut code_table = HashMap::new();
@@ -62,7 +62,7 @@ impl HaffmanTree {
     }
   }
 
-  pub fn new(source: &String) -> Self {
+  fn new(source: &String) -> Self {
     let leafs: Vec<HaffmanTree> = Self::count(source)
       .iter()
       .map(|&(_, c)| HaffmanTree::Leaf(c))
@@ -112,6 +112,52 @@ impl HaffmanTree {
     length_of_chars.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
     length_of_chars
   }
+}
+
+fn compress(source: &String) -> String {
+  let table = HaffmanTree::new(source).get_table();
+  source.chars().fold("".to_owned(), |acc, c| {
+    let code = table
+      .get(&c)
+      .expect("Haffman-table should always to code all characters");
+    format!("{}{}", acc, code)
+  })
+}
+
+fn decompress(source: &String, table: &HashMap<char, String>) -> String {
+  let invert_table = table
+    .into_iter()
+    .map(|(k, v)| (v.clone(), k.clone()))
+    .collect::<HashMap<String, char>>();
+
+  fn decompress_impl(
+    code_buf: &String,
+    result_buf: &String,
+    source: &String,
+    table: &HashMap<String, char>,
+  ) -> String {
+    if source.len() == 0 && code_buf.len() == 0 {
+      return result_buf.to_owned();
+    };
+    match table.get(code_buf) {
+      Some(next_char) => decompress_impl(
+        &"".to_owned(),
+        &format!("{}{}", result_buf, next_char),
+        source,
+        table,
+      ),
+      None => {
+        let (c, next) = source.split_at(1);
+        decompress_impl(
+          &format!("{}{}", code_buf, c),
+          result_buf,
+          &next.to_owned(),
+          table,
+        )
+      }
+    }
+  }
+  decompress_impl(&"".to_owned(), &"".to_owned(), source, &invert_table)
 }
 
 #[cfg(test)]
@@ -212,6 +258,39 @@ mod test {
       ].into_iter()
         .collect::<HashMap<char, String>>(),
       x
+    );
+  }
+
+  #[test]
+  fn test_compress_effectively() {
+    let expect = "AAAAABBBBCCCDDE".to_owned();
+    let compressed = compress(&expect);
+    let not_compressed = format!(
+      "{:?}",
+      expect
+        .as_bytes()
+        .iter()
+        .fold("".to_owned(), |acc, b| format!("{}{:b}", acc, b))
+    );
+    assert!((compressed.len() as f32 / not_compressed.len() as f32) < 0.5);
+    assert!(compressed.len() < not_compressed.len());
+  }
+
+  #[test]
+  fn test_compress() {
+    assert_eq!(
+      "000000000001010101111111100100101".to_owned(),
+      compress(&"AAAAABBBBCCCDDE".to_owned())
+    );
+  }
+
+  #[test]
+  fn test_decompress() {
+    let expect = "AAAAABBBBCCCDDE".to_owned();
+    let table = HaffmanTree::new(&expect).get_table();
+    assert_eq!(
+      expect,
+      decompress(&"000000000001010101111111100100101".to_owned(), &table)
     );
   }
 }
