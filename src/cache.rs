@@ -181,22 +181,25 @@ impl HaffmanTree {
   }
 }
 
-fn compress(source: &String) -> String {
+fn compress(source: &String) -> (String, HashMap<char, String>) {
   let table = HaffmanTree::new(source).get_table();
-  source
-    .chars()
-    .enumerate()
-    .fold("".to_owned(), |acc, (_, c)| {
-      let code = table.get(&c).expect(
-        format!(
-          "{}:{} A character [{:?}] did not code correctly to the Haffman-table",
-          file!(),
-          line!(),
-          c
-        ).as_str(),
-      );
-    format!("{}{}", acc, code)
-  })
+  (
+    source
+      .chars()
+      .enumerate()
+      .fold("".to_owned(), |acc, (_, c)| {
+        let code = table.get(&c).expect(
+          format!(
+            "{}:{} A character [{:?}] did not code correctly to the Haffman-table",
+            file!(),
+            line!(),
+            c
+          ).as_str(),
+        );
+        format!("{}{}", acc, code)
+      }),
+    table,
+  )
 }
 
 fn decompress(source: &String, table: &HashMap<char, String>) -> String {
@@ -220,7 +223,7 @@ fn decompress(source: &String, table: &HashMap<char, String>) -> String {
         let (c, next) = source_tmp.split_at(1);
         code_buf = format!("{}{}", code_buf, c);
         source = next.to_owned();
-    }
+      }
     };
   }
   result_buf
@@ -337,15 +340,15 @@ mod test {
         .iter()
         .fold("".to_owned(), |acc, b| format!("{}{:b}", acc, b))
     );
-    assert!((compressed.len() as f32 / not_compressed.len() as f32) < 0.5);
-    assert!(compressed.len() < not_compressed.len());
+    assert!((compressed.0.len() as f32 / not_compressed.len() as f32) < 0.5);
+    assert!(compressed.0.len() < not_compressed.len());
   }
 
   #[test]
   fn test_compress_ordinarly() {
     assert_eq!(
       "000000000001010101111111100100101".to_owned(),
-      compress(&"AAAAABBBBCCCDDE".to_owned())
+      compress(&"AAAAABBBBCCCDDE".to_owned()).0
     );
   }
 
@@ -353,7 +356,7 @@ mod test {
   fn test_compress_non_ascii_char() {
     assert_eq!(
       "111000001".to_owned(),
-      compress(&"あああいい●".to_owned())
+      compress(&"あああいい●".to_owned()).0
     );
   }
 
@@ -362,8 +365,8 @@ mod test {
     let mut source = String::new();
     let mut file = fs::File::open("./fixture/sample").unwrap();
     let _ = file.read_to_string(&mut source);
-    let table = HaffmanTree::new(&source).get_table();
-    assert_eq!(source, decompress(&compress(&source), &table));
+    let (compressed, table) = compress(&source);
+    assert_eq!(source, decompress(&compressed, &table));
   }
 
   #[test]
