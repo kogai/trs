@@ -5,18 +5,20 @@ use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use std::fmt::{self, Display, Formatter};
 use termion::{color, style};
-use std::process::exit;
 use utils::space_to_underscore;
 
 pub fn definitions(query_words: Vec<String>) -> String {
-  enumlate_examples(call(query_words))
-    .iter()
-    .map(|d| format!("{}", d))
-    .collect::<Vec<String>>()
-    .join("\n\n")
+  match call(query_words) {
+    Ok(result) => enumlate_examples(result)
+      .iter()
+      .map(|d| format!("{}", d))
+      .collect::<Vec<String>>()
+      .join("\n\n"),
+    Err(reason) => reason,
+  }
 }
 
-fn call(query_words: Vec<String>) -> models::RetrieveEntry {
+fn call(query_words: Vec<String>) -> Result<models::RetrieveEntry, String> {
   let query_text = space_to_underscore(&query_words.join(" "));
   let mut core = Core::new().unwrap();
   let handle = core.handle();
@@ -36,18 +38,15 @@ fn call(query_words: Vec<String>) -> models::RetrieveEntry {
     );
 
   match core.run(work) {
-    Ok(json) => json,
-    Err(_) => {
-      println!(
-        "{}●{} [{}{}{}] was not found in Oxford dictionary",
-        color::Fg(color::Green),
-        color::Fg(color::White),
-        style::Bold,
-        &query_words.join(" "),
-        style::Reset
-      );
-      exit(0);
-    }
+    Ok(json) => Ok(json),
+    Err(_) => Err(format!(
+      "{}●{} [{}{}{}] was not found in Oxford dictionary",
+      color::Fg(color::Green),
+      color::Fg(color::White),
+      style::Bold,
+      &query_words.join(" "),
+      style::Reset
+    )),
   }
 }
 
