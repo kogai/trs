@@ -72,11 +72,11 @@ impl FSCache {
 
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
-  Leaf(([u8; 4], u8)),
+  Leaf(([u8; 4], u16)),
   Node {
     zero: Box<HaffmanTree>,
     one: Box<HaffmanTree>,
-    probability: u8,
+    probability: u16,
   },
 }
 
@@ -86,8 +86,10 @@ impl HaffmanTree {
 
     match self {
       &Leaf((codes, _)) => {
-        let raw_code = *codes.first().unwrap();
-        code_table.insert(char::from(raw_code), code.to_owned());
+        let c = String::from_utf8(codes.to_vec())
+          .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
+          .remove(0);
+        code_table.insert(c, code.to_owned());
       }
       &Node {
         ref zero, ref one, ..
@@ -104,8 +106,10 @@ impl HaffmanTree {
     let mut code_table = HashMap::new();
     match self {
       &Leaf((codes, _)) => {
-        let code = *codes.first().unwrap();
-        code_table.insert(char::from(code), "0".to_owned());
+        let c = String::from_utf8(codes.to_vec())
+          .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
+          .remove(0);
+        code_table.insert(c, "0".to_owned());
         code_table
       }
       &Node {
@@ -118,7 +122,7 @@ impl HaffmanTree {
     }
   }
 
-  fn get_probability(&self) -> u8 {
+  fn get_probability(&self) -> u16 {
     use self::HaffmanTree::*;
     match self {
       &Leaf((_, p)) => p,
@@ -131,15 +135,14 @@ impl HaffmanTree {
       .iter()
       .map(|&(_, c)| HaffmanTree::Leaf(c))
       .collect();
-    Self::build_tree(leafs)
+    HaffmanTree::build_tree(leafs)
   }
 
-  fn build_tree(trees: Vec<Self>) -> Self {
+  fn build_tree(mut trees: Vec<Self>) -> Self {
     match trees.len() {
       0 => unreachable!("Could not found trees, something become wrong."),
       1 => trees.first().unwrap().clone(),
       _ => {
-        let mut trees = trees;
         trees.sort_by(|a, b| a.get_probability().cmp(&b.get_probability()));
         let mut remains = trees.split_off(2);
         let small_fst = trees.get(0).unwrap();
@@ -155,10 +158,10 @@ impl HaffmanTree {
     }
   }
 
-  fn count(source: &String) -> Vec<(char, ([u8; 4], u8))> {
+  fn count(source: &String) -> Vec<(char, ([u8; 4], u16))> {
     let mut length_of_chars = source
       .chars()
-      .fold(HashMap::new(), |mut acc: HashMap<char, (char, u8)>, c| {
+      .fold(HashMap::new(), |mut acc: HashMap<char, (char, u16)>, c| {
         if let Some(&(_, n)) = acc.get(&c) {
           acc.insert(c, (c, n + 1));
         } else {
@@ -172,7 +175,7 @@ impl HaffmanTree {
         c.encode_utf8(&mut buf);
         (c, (buf, n))
       })
-      .collect::<Vec<(char, ([u8; 4], u8))>>();
+      .collect::<Vec<(char, ([u8; 4], u16))>>();
     length_of_chars.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
     length_of_chars
   }
@@ -180,10 +183,18 @@ impl HaffmanTree {
 
 fn compress(source: &String) -> String {
   let table = HaffmanTree::new(source).get_table();
-  source.chars().fold("".to_owned(), |acc, c| {
-    let code = table
-      .get(&c)
-      .expect("Haffman-table should always to code all characters");
+  source
+    .chars()
+    .enumerate()
+    .fold("".to_owned(), |acc, (_, c)| {
+      let code = table.get(&c).expect(
+        format!(
+          "{}:{} A character [{:?}] did not code correctly to the Haffman-table",
+          file!(),
+          line!(),
+          c
+        ).as_str(),
+      );
     format!("{}{}", acc, code)
   })
 }
@@ -204,9 +215,9 @@ fn decompress(source: &String, table: &HashMap<char, String>) -> String {
       return result_buf.to_owned();
     };
     match table.get(code_buf) {
-      Some(next_char) => decompress_impl(
+      Some(next_code) => decompress_impl(
         &"".to_owned(),
-        &format!("{}{}", result_buf, next_char),
+        &format!("{}{}", result_buf, next_code),
         source,
         table,
       ),
@@ -247,7 +258,6 @@ mod test {
   fn test_haffman_simple_tree() {
     use self::HaffmanTree::*;
     let x = HaffmanTree::new(&"AAB".to_owned());
-    println!("{:#?}", x);
     assert_eq!(
       Node {
         zero: Box::new(Leaf(([65, 0, 0, 0], 2))),
@@ -341,7 +351,7 @@ mod test {
   }
 
   #[test]
-  fn test_compress() {
+  fn test_compress_ordinarly() {
     assert_eq!(
       "000000000001010101111111100100101".to_owned(),
       compress(&"AAAAABBBBCCCDDE".to_owned())
@@ -349,15 +359,20 @@ mod test {
   }
 
   #[test]
-  fn test_real_data_compress() {
-    let mut buf = String::new();
+  fn test_compress_non_ascii_char() {
+    assert_eq!(
+      "111000001".to_owned(),
+      compress(&"あああいい●".to_owned())
+    );
+  }
+
+  #[test]
+  fn test_real_data_compression() {
+    let mut source = String::new();
     let mut file = fs::File::open("./fixture/sample").unwrap();
-    let _ = file.read_to_string(&mut buf);
-    println!("{}", compress(&buf));
-    // assert_eq!(
-    //   "000000000001010101111111100100101".to_owned(),
-    //   compress(&"AAAAABBBBCCCDDE".to_owned())
-    // );
+    let _ = file.read_to_string(&mut source);
+    let table = HaffmanTree::new(&source).get_table();
+    assert_eq!(source, decompress(&compress(&source), &table));
   }
 
   #[test]
