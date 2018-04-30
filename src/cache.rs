@@ -231,6 +231,46 @@ fn decompress(source: &String, table: &HaffmanTable) -> String {
   result_buf
 }
 
+fn bit_of_string(mut from: String) -> Vec<u8> {
+  let mut buf = Vec::new();
+  while from.len() > 0 {
+    let from_tmp = from.clone();
+    let next = if from_tmp.len() < 8 {
+      from = "".to_owned();
+      from_tmp.as_str()
+    } else {
+      let (next, rest) = from_tmp.split_at(8);
+      from = rest.to_owned();
+      next
+    };
+
+    let result = u8::from_str_radix(next, 2)
+      .expect(format!("{}:{} Can not parse correctly [{}]", file!(), line!(), next).as_ref());
+    buf.push(result);
+  }
+  buf
+}
+
+fn string_of_bit(from: Vec<u8>) -> String {
+  let last_index = from.len() - 1;
+  from
+    .into_iter()
+    .enumerate()
+    .map(|(idx, n)| {
+      let bit_string = format!("{:b}", n);
+      if bit_string.len() < 8 && idx != last_index {
+        let mut pad = String::new();
+        for _ in 0..(8 - bit_string.len()) {
+          pad = pad + "0";
+        }
+        format!("{}{}", pad, bit_string)
+      } else {
+        bit_string
+      }
+    })
+    .collect::<String>()
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
@@ -378,6 +418,18 @@ mod test {
     assert_eq!(
       expect,
       decompress(&"000000000001010101111111100100101".to_owned(), &table)
+    );
+  }
+
+  #[test]
+  fn test_binary_number() {
+    assert_eq!(
+      vec![0b00000000, 0b00010101, 0b01111111, 0b10010010, 0b1],
+      bit_of_string("000000000001010101111111100100101".to_owned())
+    );
+    assert_eq!(
+      "000000000001010101111111100100101".to_owned(),
+      string_of_bit(vec![0, 21, 127, 146, 1])
     );
   }
 }
