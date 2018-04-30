@@ -30,7 +30,6 @@ impl FSCache {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
         // TODO: Decompress from file system and construct hashmap
-        println!("{:?}", buf);
         serde_json::from_slice::<HashMap<String, String>>(&buf.as_slice())
           .expect("Cache file seems did not save correctly")
       }
