@@ -69,6 +69,9 @@ impl FSCache {
   */
 }
 
+type HaffmanTable = HashMap<char, String>;
+type HaffmanTableInvert = HashMap<String, char>;
+
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
   Leaf(([u8; 4], u16)),
@@ -80,7 +83,7 @@ enum HaffmanTree {
 }
 
 impl HaffmanTree {
-  fn get_codes(&self, code: &String, mut code_table: &mut HashMap<char, String>) {
+  fn get_codes(&self, code: &String, mut code_table: &mut HaffmanTable) {
     use self::HaffmanTree::*;
 
     match self {
@@ -99,7 +102,7 @@ impl HaffmanTree {
     }
   }
 
-  fn get_table(&self) -> HashMap<char, String> {
+  fn get_table(&self) -> HaffmanTable {
     use self::HaffmanTree::*;
 
     let mut code_table = HashMap::new();
@@ -180,7 +183,7 @@ impl HaffmanTree {
   }
 }
 
-fn compress(source: &String) -> (String, HashMap<char, String>) {
+fn compress(source: &String) -> (String, HaffmanTable) {
   let table = HaffmanTree::new(source).get_table();
   (
     source
@@ -201,11 +204,11 @@ fn compress(source: &String) -> (String, HashMap<char, String>) {
   )
 }
 
-fn decompress(source: &String, table: &HashMap<char, String>) -> String {
+fn decompress(source: &String, table: &HaffmanTable) -> String {
   let invert_table = table
     .into_iter()
     .map(|(k, v)| (v.clone(), k.clone()))
-    .collect::<HashMap<String, char>>();
+    .collect::<HaffmanTableInvert>();
 
   let mut source = source.clone();
   let mut result_buf = String::new();
@@ -323,7 +326,7 @@ mod test {
         ('D', "100".to_owned()),
         ('E', "101".to_owned()),
       ].into_iter()
-        .collect::<HashMap<char, String>>(),
+        .collect::<HaffmanTable>(),
       x
     );
   }
