@@ -205,34 +205,25 @@ fn decompress(source: &String, table: &HashMap<char, String>) -> String {
     .map(|(k, v)| (v.clone(), k.clone()))
     .collect::<HashMap<String, char>>();
 
-  fn decompress_impl(
-    code_buf: &String,
-    result_buf: &String,
-    source: &String,
-    table: &HashMap<String, char>,
-  ) -> String {
-    if source.len() == 0 && code_buf.len() == 0 {
-      return result_buf.to_owned();
-    };
-    match table.get(code_buf) {
-      Some(next_code) => decompress_impl(
-        &"".to_owned(),
-        &format!("{}{}", result_buf, next_code),
-        source,
-        table,
-      ),
-      None => {
-        let (c, next) = source.split_at(1);
-        decompress_impl(
-          &format!("{}{}", code_buf, c),
-          result_buf,
-          &next.to_owned(),
-          table,
-        )
+  let mut source = source.clone();
+  let mut result_buf = String::new();
+  let mut code_buf = String::new();
+
+  while (source.len() > 0) || (code_buf.len() > 0) {
+    match invert_table.get(&code_buf) {
+      Some(next_char) => {
+        code_buf.clear();
+        result_buf = format!("{}{}", result_buf, next_char);
       }
+      None => {
+        let source_tmp = source.clone();
+        let (c, next) = source_tmp.split_at(1);
+        code_buf = format!("{}{}", code_buf, c);
+        source = next.to_owned();
     }
+    };
   }
-  decompress_impl(&"".to_owned(), &"".to_owned(), source, &invert_table)
+  result_buf
 }
 
 #[cfg(test)]
