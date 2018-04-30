@@ -50,7 +50,7 @@ impl FSCache {
     // TODO: Compress and save to file system
     let _ = match (
       fs::File::create(&Self::get_cache()),
-      serde_json::to_vec(&self.0),
+      serde_json::to_vec_pretty(&self.0),
     ) {
       (Ok(mut file), Ok(mut buf)) => {
         let _ = file.write_all(&mut buf);
