@@ -30,18 +30,9 @@ impl FSCache {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
-        let mut raw = buf.split(|code| code == &NULL);
-        let table_raw = raw
-          .next()
-          .expect(format!("{}:{}", file!(), line!()).as_ref());
-        let cache_raw = raw
-          .next()
-          .expect(format!("{}:{}", file!(), line!()).as_ref());
-        let cache_string = string_of_bit(cache_raw.to_vec());
-        let table = deserialize_table(table_raw.to_vec());
-        let cache = decompress(&cache_string, &table);
-        serde_json::from_str::<HashMap<String, String>>(&cache)
-          .expect(format!("Cache file seems did not save correctly\n{}", &cache).as_ref())
+        let json = FSCache::decompress(buf);
+        serde_json::from_str::<HashMap<String, String>>(&json)
+          .expect(format!("Cache file seems did not save correctly\n{}", &json).as_ref())
       }
       Err(_) => {
         let _ = fs::File::create(cache_file);
@@ -62,12 +53,7 @@ impl FSCache {
       serde_json::to_string_pretty(&self.0),
     ) {
       (Ok(mut file), Ok(buf)) => {
-        let (compressed, table) = compress(&buf);
-        let mut table_serialized = serialize_table(table);
-        let mut body_serialized = bit_of_string(compressed);
-        table_serialized.push(NULL);
-        table_serialized.append(&mut body_serialized);
-        let _ = file.write_all(&mut table_serialized);
+        let _ = file.write_all(&mut FSCache::compress(&buf));
       }
       (Err(e), _) => unreachable!(
         "Something wrong, cache file did not initialize correctly\n{:?}",
@@ -75,6 +61,31 @@ impl FSCache {
       ),
       (_, Err(e)) => unreachable!("Can not parse cache data correctly\n{:?}", e),
     };
+  }
+
+  fn compress(raw: &String) -> Vec<u8> {
+    let (compressed, table) = compress(raw);
+    let mut table_serialized = serialize_table(table.clone());
+    let mut body_serialized = bit_of_string(compressed);
+    table_serialized.push(NULL);
+    table_serialized.append(&mut body_serialized);
+    table_serialized
+  }
+
+  fn decompress(raw: Vec<u8>) -> String {
+    let mut raws = raw.splitn(2, |code| code == &NULL);
+    let table_raw = raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref());
+    let cache_raw = raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref());
+    assert!(raws.next().is_none());
+
+    let table = deserialize_table(table_raw.to_vec());
+    let cache_string = string_of_bit(cache_raw.to_vec());
+    let cache = decompress(&cache_string, &table);
+    cache
   }
 }
 
@@ -431,33 +442,43 @@ mod test {
   }
 
   #[test]
-  fn test_real_data_compression() {
-    let mut source = String::new();
-    let mut file = fs::File::open("./fixture/sample").unwrap();
-    let _ = file.read_to_string(&mut source);
-    let (compressed, table) = compress(&source);
-    assert_eq!(source, decompress(&compressed, &table));
-  }
-
-  #[test]
-  fn test_decompress() {
+  fn test_decompress_ordinary() {
     let expect = "AAAAABBBBCCCDDE".to_owned();
-    let table = HaffmanTree::new(&expect).get_table();
-    assert_eq!(
-      expect,
-      decompress(&"000000000001010101111111100100101".to_owned(), &table)
-    );
+    let (compressed, table) = compress(&expect);
+    assert_eq!(expect, decompress(&compressed, &table));
   }
 
   #[test]
-  fn test_binary_number() {
+  fn test_decompress_curly() {
+    let expect = "{\n\"a\": \"b\"\n}\n".to_owned();
+    let (compressed, table) = compress(&expect);
+    assert_eq!(expect, decompress(&compressed, &table));
+  }
+
+  #[test]
+  fn test_bit_of_string() {
     assert_eq!(
       vec![0b00000000, 0b00010101, 0b01111111, 0b10010010, 0b1],
       bit_of_string("000000000001010101111111100100101".to_owned())
     );
+  }
+
+  #[test]
+  fn test_string_of_bit() {
     assert_eq!(
       "000000000001010101111111100100101".to_owned(),
       string_of_bit(vec![0, 21, 127, 146, 1])
     );
+  }
+
+  #[test]
+  fn test_real_data() {
+    let mut source = String::new();
+    let mut file = fs::File::open("./fixture/sample").unwrap();
+    let _ = file.read_to_string(&mut source);
+    let source: HashMap<String, String> = serde_json::from_str(&source).unwrap();
+    let source = serde_json::to_string_pretty(&source).unwrap();
+    let compressed = FSCache::compress(&source);
+    assert_eq!(source, FSCache::decompress(compressed));
   }
 }

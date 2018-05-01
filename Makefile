@@ -32,7 +32,7 @@ cache:
 	OXFORD_API_ID=$(OXFORD_API_ID) && \
 	OXFORD_API_KEY=$(OXFORD_API_KEY) && \
 	cargo run -- -d dog
-	cat .trs-cache
+	ls -lh .trs-cache
 
 .PHONY: clean
 clean:
