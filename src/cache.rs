@@ -66,24 +66,40 @@ impl FSCache {
   fn compress(raw: &String) -> Vec<u8> {
     let (compressed, table) = compress(raw);
     let mut table_serialized = serialize_table(table.clone());
-    let mut body_serialized = bit_of_string(compressed);
+    let (mut body_serialized, pad_of_last) = bit_of_string(compressed);
+    table_serialized.push(NULL);
+    table_serialized.push(pad_of_last);
     table_serialized.push(NULL);
     table_serialized.append(&mut body_serialized);
     table_serialized
   }
 
   fn decompress(raw: Vec<u8>) -> String {
-    let mut raws = raw.splitn(2, |code| code == &NULL);
+    let mut raws = raw.splitn(3, |code| code == &NULL);
     let table_raw = raws
       .next()
       .expect(format!("{}:{}", file!(), line!()).as_ref());
+
+    let pad_of_last = match raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref())
+      .first()
+    {
+      Some(p) => *p,
+      None => 0,
+    };
+
     let cache_raw = raws
       .next()
       .expect(format!("{}:{}", file!(), line!()).as_ref());
+    let cache_raw = match pad_of_last {
+      0 => cache_raw.split_at(1).1,
+      _ => cache_raw,
+    };
     assert!(raws.next().is_none());
 
     let table = deserialize_table(table_raw.to_vec());
-    let cache_string = string_of_bit(cache_raw.to_vec());
+    let cache_string = string_of_bit((cache_raw.to_vec(), pad_of_last.clone()));
     let cache = decompress(&cache_string, &table);
     cache
   }
@@ -270,11 +286,13 @@ fn decompress(source: &String, table: &HaffmanTable) -> String {
   result_buf
 }
 
-fn bit_of_string(mut from: String) -> Vec<u8> {
+fn bit_of_string(mut from: String) -> (Vec<u8>, u8) {
   let mut buf = Vec::new();
+  let mut pad_of_last = 0;
   while from.len() > 0 {
     let from_tmp = from.clone();
     let next = if from_tmp.len() < 8 {
+      pad_of_last = 8 - from_tmp.len() as u8;
       from = "".to_owned();
       from_tmp.as_str()
     } else {
@@ -287,22 +305,29 @@ fn bit_of_string(mut from: String) -> Vec<u8> {
       .expect(format!("{}:{} Can not parse correctly [{}]", file!(), line!(), next).as_ref());
     buf.push(result);
   }
-  buf
+  (buf, pad_of_last)
 }
 
-fn string_of_bit(from: Vec<u8>) -> String {
+fn string_of_bit(from: (Vec<u8>, u8)) -> String {
+  let (from, pad_of_last) = from;
   let last_index = from.len() - 1;
   from
     .into_iter()
     .enumerate()
     .map(|(idx, n)| {
-      let bit_string = format!("{:b}", n);
-      if bit_string.len() < 8 && idx != last_index {
-        let mut pad = String::new();
-        for _ in 0..(8 - bit_string.len()) {
-          pad = pad + "0";
+      let mut bit_string = format!("{:b}", n);
+      if bit_string.len() < 8 {
+        if idx == last_index {
+          while (bit_string.len() as u8) < (8 - pad_of_last) {
+            bit_string = format!("0{}", bit_string);
+          }
+          bit_string
+        } else {
+          while (bit_string.len() as u8) < 8 {
+            bit_string = format!("0{}", bit_string);
+          }
+          bit_string
         }
-        format!("{}{}", pad, bit_string)
       } else {
         bit_string
       }
@@ -458,7 +483,7 @@ mod test {
   #[test]
   fn test_bit_of_string() {
     assert_eq!(
-      vec![0b00000000, 0b00010101, 0b01111111, 0b10010010, 0b1],
+      (vec![0b00000000, 0b00010101, 0b01111111, 0b10010010, 0b1], 7),
       bit_of_string("000000000001010101111111100100101".to_owned())
     );
   }
@@ -467,8 +492,18 @@ mod test {
   fn test_string_of_bit() {
     assert_eq!(
       "000000000001010101111111100100101".to_owned(),
-      string_of_bit(vec![0, 21, 127, 146, 1])
+      string_of_bit((vec![0, 21, 127, 146, 1], 7))
     );
+  }
+
+  #[test]
+  fn test_by_hashmap() {
+    let mut source = HashMap::new();
+    source.insert("a".to_owned(), "a".to_owned());
+    source.insert("b".to_owned(), "あ".to_owned());
+    let source = serde_json::to_string_pretty(&source).unwrap();
+    let compressed = FSCache::compress(&source);
+    assert_eq!(source, FSCache::decompress(compressed));
   }
 
   #[test]
