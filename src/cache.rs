@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde_json;
 
 const CACHE_FILE: &'static str = ".trs-cache";
+const NULL: u8 = 0;
 
 pub struct FSCache(HashMap<String, String>);
 impl FSCache {
@@ -29,9 +30,18 @@ impl FSCache {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
-        // TODO: Decompress from file system and construct hashmap
-        serde_json::from_slice::<HashMap<String, String>>(&buf.as_slice())
-          .expect("Cache file seems did not save correctly")
+        let mut raw = buf.split(|code| code == &NULL);
+        let table_raw = raw
+          .next()
+          .expect(format!("{}:{}", file!(), line!()).as_ref());
+        let cache_raw = raw
+          .next()
+          .expect(format!("{}:{}", file!(), line!()).as_ref());
+        let cache_string = string_of_bit(cache_raw.to_vec());
+        let table = deserialize_table(table_raw.to_vec());
+        let cache = decompress(&cache_string, &table);
+        serde_json::from_str::<HashMap<String, String>>(&cache)
+          .expect(format!("Cache file seems did not save correctly\n{}", &cache).as_ref())
       }
       Err(_) => {
         let _ = fs::File::create(cache_file);
@@ -47,13 +57,17 @@ impl FSCache {
 
   pub fn set(&mut self, key: &String, value: &String) {
     self.0.insert(key.to_owned(), value.to_owned());
-    // TODO: Compress and save to file system
-    let _ = match (
+    match (
       fs::File::create(&Self::get_cache()),
-      serde_json::to_vec_pretty(&self.0),
+      serde_json::to_string_pretty(&self.0),
     ) {
-      (Ok(mut file), Ok(mut buf)) => {
-        let _ = file.write_all(&mut buf);
+      (Ok(mut file), Ok(buf)) => {
+        let (compressed, table) = compress(&buf);
+        let mut table_serialized = serialize_table(table);
+        let mut body_serialized = bit_of_string(compressed);
+        table_serialized.push(NULL);
+        table_serialized.append(&mut body_serialized);
+        let _ = file.write_all(&mut table_serialized);
       }
       (Err(e), _) => unreachable!(
         "Something wrong, cache file did not initialize correctly\n{:?}",
@@ -62,15 +76,29 @@ impl FSCache {
       (_, Err(e)) => unreachable!("Can not parse cache data correctly\n{:?}", e),
     };
   }
-
-  /*
-  fn compress(&self, words: &String) {}
-  fn decompress(&self) {}
-  */
 }
 
 type HaffmanTable = HashMap<char, String>;
 type HaffmanTableInvert = HashMap<String, char>;
+type HaffmanTableSerializable = HashMap<String, String>;
+
+fn serialize_table(table: HaffmanTable) -> Vec<u8> {
+  let table = table
+    .into_iter()
+    .map(|(k, v)| (format!("{}", k), v))
+    .collect::<HaffmanTableSerializable>();
+  match serde_json::to_vec(&table) {
+    Ok(x) => x,
+    Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
+  }
+}
+
+fn deserialize_table(from: Vec<u8>) -> HaffmanTable {
+  match serde_json::from_slice::<HaffmanTable>(&from) {
+    Ok(x) => x,
+    Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
+  }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
