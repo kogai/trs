@@ -54,6 +54,13 @@ impl FSCache {
     ) {
       (Ok(mut file), Ok(buf)) => {
         let _ = file.write_all(&mut FSCache::compress(&buf));
+
+        #[cfg(debug_assertions)]
+        let _ = if let Ok(mut file) = fs::File::create("fixture/sample") {
+          let mut json = buf.clone();
+          let _ = file.write_all(&mut json.as_bytes());
+        } else {
+        };
       }
       (Err(e), _) => unreachable!(
         "Something wrong, cache file did not initialize correctly\n{:?}",

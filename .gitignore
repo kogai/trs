@@ -3,3 +3,4 @@ target/
 .envrc
 /bin
 .trs-cache
+fixture/sample
