@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde_json;
 
 const CACHE_FILE: &'static str = ".trs-cache";
+const NULL: u8 = 0;
 
 pub struct FSCache(HashMap<String, String>);
 impl FSCache {
@@ -29,9 +30,9 @@ impl FSCache {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
-        // TODO: Decompress from file system and construct hashmap
-        serde_json::from_slice::<HashMap<String, String>>(&buf.as_slice())
-          .expect("Cache file seems did not save correctly")
+        let json = FSCache::decompress(buf);
+        serde_json::from_str::<HashMap<String, String>>(&json)
+          .expect(format!("Cache file seems did not save correctly\n{}", &json).as_ref())
       }
       Err(_) => {
         let _ = fs::File::create(cache_file);
@@ -47,13 +48,19 @@ impl FSCache {
 
   pub fn set(&mut self, key: &String, value: &String) {
     self.0.insert(key.to_owned(), value.to_owned());
-    // TODO: Compress and save to file system
-    let _ = match (
+    match (
       fs::File::create(&Self::get_cache()),
-      serde_json::to_vec_pretty(&self.0),
+      serde_json::to_string_pretty(&self.0),
     ) {
-      (Ok(mut file), Ok(mut buf)) => {
-        let _ = file.write_all(&mut buf);
+      (Ok(mut file), Ok(buf)) => {
+        let _ = file.write_all(&mut FSCache::compress(&buf));
+
+        #[cfg(debug_assertions)]
+        let _ = if let Ok(mut file) = fs::File::create("fixture/.trs-cache-raw") {
+          let mut json = buf.clone();
+          let _ = file.write_all(&mut json.as_bytes());
+        } else {
+        };
       }
       (Err(e), _) => unreachable!(
         "Something wrong, cache file did not initialize correctly\n{:?}",
@@ -63,14 +70,90 @@ impl FSCache {
     };
   }
 
-  /*
-  fn compress(&self, words: &String) {}
-  fn decompress(&self) {}
-  */
+  fn compress(raw: &String) -> Vec<u8> {
+    let (compressed, table) = compress(raw);
+    let mut table_serialized = serialize_table(table.clone());
+    let (mut body_serialized, pad_of_last) = bit_of_string(compressed);
+    table_serialized.push(NULL);
+    table_serialized.push(pad_of_last);
+    table_serialized.push(NULL);
+    table_serialized.append(&mut body_serialized);
+    table_serialized
+  }
+
+  fn decompress(raw: Vec<u8>) -> String {
+    let mut raws = raw.splitn(3, |code| code == &NULL);
+    let table_raw = raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref());
+
+    let pad_of_last = match raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref())
+      .first()
+    {
+      Some(p) => *p,
+      None => 0,
+    };
+
+    let cache_raw = raws
+      .next()
+      .expect(format!("{}:{}", file!(), line!()).as_ref());
+    let cache_raw = match pad_of_last {
+      0 => cache_raw.split_at(1).1,
+      _ => cache_raw,
+    };
+    assert!(raws.next().is_none());
+
+    let table = deserialize_table(table_raw.to_vec());
+    let cache_string = string_of_bit((cache_raw.to_vec(), pad_of_last.clone()));
+    let cache = decompress(&cache_string, &table);
+    cache
+  }
 }
 
-type HaffmanTable = HashMap<char, String>;
+// 'a': "100", 5
+type HaffmanTable = HashMap<char, (String, u16)>;
 type HaffmanTableInvert = HashMap<String, char>;
+type HaffmanTableSerializable = HashMap<String, u16>;
+
+fn serialize_table(table: HaffmanTable) -> Vec<u8> {
+  let table = table
+    .into_iter()
+    .map(|(k, v)| (format!("{}", k), v.1))
+    .collect::<HaffmanTableSerializable>();
+  match serde_json::to_vec(&table) {
+    Ok(x) => x,
+    Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
+  }
+}
+
+fn deserialize_table(from: Vec<u8>) -> HaffmanTable {
+  let serializable = match serde_json::from_slice::<HaffmanTableSerializable>(&from) {
+    Ok(x) => x,
+    Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
+  };
+
+  let mut leafs = serializable
+    .into_iter()
+    .map(|(character, size)| {
+      let codes = character.as_bytes();
+      let mut buf = [0u8; 4];
+      for i in 0..4 {
+        if let Some(code) = codes.get(i) {
+          buf[i] = *code;
+        };
+      }
+      HaffmanTree::Leaf((buf, size))
+    })
+    .collect::<Vec<HaffmanTree>>();
+
+  leafs.sort_by(|a, b| match (a, b) {
+    (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+    _ => unreachable!(),
+  });
+  HaffmanTree::build_tree(leafs).get_table()
+}
 
 #[derive(Debug, Clone, PartialEq)]
 enum HaffmanTree {
@@ -87,11 +170,11 @@ impl HaffmanTree {
     use self::HaffmanTree::*;
 
     match self {
-      &Leaf((codes, _)) => {
+      &Leaf((codes, size)) => {
         let c = String::from_utf8(codes.to_vec())
           .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
           .remove(0);
-        code_table.insert(c, code.to_owned());
+        code_table.insert(c, (code.to_owned(), size));
       }
       &Node {
         ref zero, ref one, ..
@@ -107,11 +190,11 @@ impl HaffmanTree {
 
     let mut code_table = HashMap::new();
     match self {
-      &Leaf((codes, _)) => {
+      &Leaf((codes, size)) => {
         let c = String::from_utf8(codes.to_vec())
           .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
           .remove(0);
-        code_table.insert(c, "0".to_owned());
+        code_table.insert(c, ("0".to_owned(), size));
         code_table
       }
       &Node {
@@ -133,10 +216,16 @@ impl HaffmanTree {
   }
 
   fn new(source: &String) -> Self {
-    let leafs: Vec<HaffmanTree> = Self::count(source)
+    let mut leafs: Vec<HaffmanTree> = Self::count(source)
       .iter()
       .map(|&(_, c)| HaffmanTree::Leaf(c))
       .collect();
+
+    leafs.sort_by(|a, b| match (a, b) {
+      (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+      _ => unreachable!(),
+    });
+
     HaffmanTree::build_tree(leafs)
   }
 
@@ -198,7 +287,7 @@ fn compress(source: &String) -> (String, HaffmanTable) {
             c
           ).as_str(),
         );
-        format!("{}{}", acc, code)
+        format!("{}{}", acc, code.0)
       }),
     table,
   )
@@ -207,7 +296,7 @@ fn compress(source: &String) -> (String, HaffmanTable) {
 fn decompress(source: &String, table: &HaffmanTable) -> String {
   let invert_table = table
     .into_iter()
-    .map(|(k, v)| (v.clone(), k.clone()))
+    .map(|(k, v)| (v.clone().0, k.clone()))
     .collect::<HaffmanTableInvert>();
 
   let mut source = source.clone();
@@ -229,6 +318,55 @@ fn decompress(source: &String, table: &HaffmanTable) -> String {
     };
   }
   result_buf
+}
+
+fn bit_of_string(mut from: String) -> (Vec<u8>, u8) {
+  let mut buf = Vec::new();
+  let mut pad_of_last = 0;
+  while from.len() > 0 {
+    let from_tmp = from.clone();
+    let next = if from_tmp.len() < 8 {
+      pad_of_last = 8 - from_tmp.len() as u8;
+      from = "".to_owned();
+      from_tmp.as_str()
+    } else {
+      let (next, rest) = from_tmp.split_at(8);
+      from = rest.to_owned();
+      next
+    };
+
+    let result = u8::from_str_radix(next, 2)
+      .expect(format!("{}:{} Can not parse correctly [{}]", file!(), line!(), next).as_ref());
+    buf.push(result);
+  }
+  (buf, pad_of_last)
+}
+
+fn string_of_bit(from: (Vec<u8>, u8)) -> String {
+  let (from, pad_of_last) = from;
+  let last_index = from.len() - 1;
+  from
+    .into_iter()
+    .enumerate()
+    .map(|(idx, n)| {
+      let mut bit_string = format!("{:b}", n);
+      if bit_string.len() < 8 {
+        if idx == last_index {
+          while (bit_string.len() as u8) < (8 - pad_of_last) {
+            bit_string = format!("0{}", bit_string);
+          }
+          bit_string
+        } else {
+          while (bit_string.len() as u8) < 8 {
+            bit_string = format!("0{}", bit_string);
+          }
+          bit_string
+        }
+      } else {
+        bit_string
+      }
+    })
+    .collect::<String>()
 }
 
 #[cfg(test)]
@@ -320,11 +458,11 @@ mod test {
      */
     assert_eq!(
       vec![
-        ('A', "00".to_owned()),
-        ('B', "01".to_owned()),
-        ('C', "11".to_owned()),
-        ('D', "100".to_owned()),
-        ('E', "101".to_owned()),
+        ('A', ("00".to_owned(), 5)),
+        ('B', ("01".to_owned(), 4)),
+        ('C', ("11".to_owned(), 3)),
+        ('D', ("100".to_owned(), 2)),
+        ('E', ("101".to_owned(), 1)),
       ].into_iter()
         .collect::<HaffmanTable>(),
       x
@@ -363,21 +501,53 @@ mod test {
   }
 
   #[test]
-  fn test_real_data_compression() {
-    let mut source = String::new();
-    let mut file = fs::File::open("./fixture/sample").unwrap();
-    let _ = file.read_to_string(&mut source);
-    let (compressed, table) = compress(&source);
-    assert_eq!(source, decompress(&compressed, &table));
+  fn test_decompress_ordinary() {
+    let expect = "AAAAABBBBCCCDDE".to_owned();
+    let (compressed, table) = compress(&expect);
+    assert_eq!(expect, decompress(&compressed, &table));
   }
 
   #[test]
-  fn test_decompress() {
-    let expect = "AAAAABBBBCCCDDE".to_owned();
-    let table = HaffmanTree::new(&expect).get_table();
+  fn test_decompress_curly() {
+    let expect = "{\n\"a\": \"b\"\n}\n".to_owned();
+    let (compressed, table) = compress(&expect);
+    assert_eq!(expect, decompress(&compressed, &table));
+  }
+
+  #[test]
+  fn test_bit_of_string() {
     assert_eq!(
-      expect,
-      decompress(&"000000000001010101111111100100101".to_owned(), &table)
+      (vec![0b00000000, 0b00010101, 0b01111111, 0b10010010, 0b1], 7),
+      bit_of_string("000000000001010101111111100100101".to_owned())
     );
+  }
+
+  #[test]
+  fn test_string_of_bit() {
+    assert_eq!(
+      "000000000001010101111111100100101".to_owned(),
+      string_of_bit((vec![0, 21, 127, 146, 1], 7))
+    );
+  }
+
+  #[test]
+  fn test_by_hashmap() {
+    let mut source = HashMap::new();
+    source.insert("a".to_owned(), "a".to_owned());
+    source.insert("b".to_owned(), "あ".to_owned());
+    let source = serde_json::to_string_pretty(&source).unwrap();
+    let compressed = FSCache::compress(&source);
+    assert_eq!(source, FSCache::decompress(compressed));
+  }
+
+  #[test]
+  fn test_real_data() {
+    let mut source = String::new();
+    let mut file = fs::File::open("./fixture/sample").unwrap();
+    let _ = file.read_to_string(&mut source);
+    let source: HashMap<String, String> = serde_json::from_str(&source).unwrap();
+    let source = serde_json::to_string_pretty(&source).unwrap();
+    let compressed = FSCache::compress(&source);
+    assert_eq!(source, FSCache::decompress(compressed));
   }
 }
