@@ -56,7 +56,7 @@ impl FSCache {
         let _ = file.write_all(&mut FSCache::compress(&buf));
 
         #[cfg(debug_assertions)]
-        let _ = if let Ok(mut file) = fs::File::create("fixture/sample") {
+        let _ = if let Ok(mut file) = fs::File::create("fixture/.trs-cache-raw") {
           let mut json = buf.clone();
           let _ = file.write_all(&mut json.as_bytes());
         } else {
