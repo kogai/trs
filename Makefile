@@ -36,4 +36,5 @@ cache:
 
 .PHONY: clean
 clean:
+	rm -rf bin
 	cargo clean
