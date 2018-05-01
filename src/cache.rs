@@ -105,14 +105,15 @@ impl FSCache {
   }
 }
 
-type HaffmanTable = HashMap<char, String>;
+// 'a': "100", 5
+type HaffmanTable = HashMap<char, (String, u16)>;
 type HaffmanTableInvert = HashMap<String, char>;
-type HaffmanTableSerializable = HashMap<String, String>;
+type HaffmanTableSerializable = HashMap<String, u16>;
 
 fn serialize_table(table: HaffmanTable) -> Vec<u8> {
   let table = table
     .into_iter()
-    .map(|(k, v)| (format!("{}", k), v))
+    .map(|(k, v)| (format!("{}", k), v.1))
     .collect::<HaffmanTableSerializable>();
   match serde_json::to_vec(&table) {
     Ok(x) => x,
@@ -121,10 +122,30 @@ fn serialize_table(table: HaffmanTable) -> Vec<u8> {
 }
 
 fn deserialize_table(from: Vec<u8>) -> HaffmanTable {
-  match serde_json::from_slice::<HaffmanTable>(&from) {
+  let serializable = match serde_json::from_slice::<HaffmanTableSerializable>(&from) {
     Ok(x) => x,
     Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
-  }
+  };
+
+  let mut leafs = serializable
+    .into_iter()
+    .map(|(character, size)| {
+      let codes = character.as_bytes();
+      let mut buf = [0u8; 4];
+      for i in 0..4 {
+        if let Some(code) = codes.get(i) {
+          buf[i] = *code;
+        };
+      }
+      HaffmanTree::Leaf((buf, size))
+    })
+    .collect::<Vec<HaffmanTree>>();
+
+  leafs.sort_by(|a, b| match (a, b) {
+    (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+    _ => unreachable!(),
+  });
+  HaffmanTree::build_tree(leafs).get_table()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -142,11 +163,11 @@ impl HaffmanTree {
     use self::HaffmanTree::*;
 
     match self {
-      &Leaf((codes, _)) => {
+      &Leaf((codes, size)) => {
         let c = String::from_utf8(codes.to_vec())
           .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
           .remove(0);
-        code_table.insert(c, code.to_owned());
+        code_table.insert(c, (code.to_owned(), size));
       }
       &Node {
         ref zero, ref one, ..
@@ -162,11 +183,11 @@ impl HaffmanTree {
 
     let mut code_table = HashMap::new();
     match self {
-      &Leaf((codes, _)) => {
+      &Leaf((codes, size)) => {
         let c = String::from_utf8(codes.to_vec())
           .expect(format!("{}:{} {:#?}", file!(), line!(), codes).as_str())
           .remove(0);
-        code_table.insert(c, "0".to_owned());
+        code_table.insert(c, ("0".to_owned(), size));
         code_table
       }
       &Node {
@@ -188,10 +209,16 @@ impl HaffmanTree {
   }
 
   fn new(source: &String) -> Self {
-    let leafs: Vec<HaffmanTree> = Self::count(source)
+    let mut leafs: Vec<HaffmanTree> = Self::count(source)
       .iter()
       .map(|&(_, c)| HaffmanTree::Leaf(c))
       .collect();
+
+    leafs.sort_by(|a, b| match (a, b) {
+      (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+      _ => unreachable!(),
+    });
+
     HaffmanTree::build_tree(leafs)
   }
 
@@ -253,7 +280,7 @@ fn compress(source: &String) -> (String, HaffmanTable) {
             c
           ).as_str(),
         );
-        format!("{}{}", acc, code)
+        format!("{}{}", acc, code.0)
       }),
     table,
   )
@@ -262,7 +289,7 @@ fn compress(source: &String) -> (String, HaffmanTable) {
 fn decompress(source: &String, table: &HaffmanTable) -> String {
   let invert_table = table
     .into_iter()
-    .map(|(k, v)| (v.clone(), k.clone()))
+    .map(|(k, v)| (v.clone().0, k.clone()))
     .collect::<HaffmanTableInvert>();
 
   let mut source = source.clone();
@@ -424,11 +451,11 @@ mod test {
      */
     assert_eq!(
       vec![
-        ('A', "00".to_owned()),
-        ('B', "01".to_owned()),
-        ('C', "11".to_owned()),
-        ('D', "100".to_owned()),
-        ('E', "101".to_owned()),
+        ('A', ("00".to_owned(), 5)),
+        ('B', ("01".to_owned(), 4)),
+        ('C', ("11".to_owned(), 3)),
+        ('D', ("100".to_owned(), 2)),
+        ('E', ("101".to_owned(), 1)),
       ].into_iter()
         .collect::<HaffmanTable>(),
       x
