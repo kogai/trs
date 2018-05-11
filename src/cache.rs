@@ -113,23 +113,23 @@ impl FSCache {
 }
 
 // 'a': "100", 5
-type HaffmanTable = HashMap<char, (String, u16)>;
-type HaffmanTableInvert = HashMap<String, char>;
-type HaffmanTableSerializable = HashMap<String, u16>;
+type HuffmanTable = HashMap<char, (String, u16)>;
+type HuffmanTableInvert = HashMap<String, char>;
+type HuffmanTableSerializable = HashMap<String, u16>;
 
-fn serialize_table(table: HaffmanTable) -> Vec<u8> {
+fn serialize_table(table: HuffmanTable) -> Vec<u8> {
   let table = table
     .into_iter()
     .map(|(k, v)| (format!("{}", k), v.1))
-    .collect::<HaffmanTableSerializable>();
+    .collect::<HuffmanTableSerializable>();
   match serde_json::to_vec(&table) {
     Ok(x) => x,
     Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
   }
 }
 
-fn deserialize_table(from: Vec<u8>) -> HaffmanTable {
-  let serializable = match serde_json::from_slice::<HaffmanTableSerializable>(&from) {
+fn deserialize_table(from: Vec<u8>) -> HuffmanTable {
+  let serializable = match serde_json::from_slice::<HuffmanTableSerializable>(&from) {
     Ok(x) => x,
     Err(e) => unreachable!("{}:{} {:?}", file!(), line!(), e),
   };
@@ -144,30 +144,30 @@ fn deserialize_table(from: Vec<u8>) -> HaffmanTable {
           buf[i] = *code;
         };
       }
-      HaffmanTree::Leaf((buf, size))
+      HuffmanTree::Leaf((buf, size))
     })
-    .collect::<Vec<HaffmanTree>>();
+    .collect::<Vec<HuffmanTree>>();
 
   leafs.sort_by(|a, b| match (a, b) {
-    (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+    (&HuffmanTree::Leaf(a), &HuffmanTree::Leaf(b)) => a.0.cmp(&b.0),
     _ => unreachable!(),
   });
-  HaffmanTree::build_tree(leafs).get_table()
+  HuffmanTree::build_tree(leafs).get_table()
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum HaffmanTree {
+enum HuffmanTree {
   Leaf(([u8; 4], u16)),
   Node {
-    zero: Box<HaffmanTree>,
-    one: Box<HaffmanTree>,
+    zero: Box<HuffmanTree>,
+    one: Box<HuffmanTree>,
     probability: u16,
   },
 }
 
-impl HaffmanTree {
-  fn get_codes(&self, code: &String, mut code_table: &mut HaffmanTable) {
-    use self::HaffmanTree::*;
+impl HuffmanTree {
+  fn get_codes(&self, code: &String, mut code_table: &mut HuffmanTable) {
+    use self::HuffmanTree::*;
 
     match self {
       &Leaf((codes, size)) => {
@@ -185,8 +185,8 @@ impl HaffmanTree {
     }
   }
 
-  fn get_table(&self) -> HaffmanTable {
-    use self::HaffmanTree::*;
+  fn get_table(&self) -> HuffmanTable {
+    use self::HuffmanTree::*;
 
     let mut code_table = HashMap::new();
     match self {
@@ -208,7 +208,7 @@ impl HaffmanTree {
   }
 
   fn get_probability(&self) -> u16 {
-    use self::HaffmanTree::*;
+    use self::HuffmanTree::*;
     match self {
       &Leaf((_, p)) => p,
       &Node { probability, .. } => probability,
@@ -216,17 +216,17 @@ impl HaffmanTree {
   }
 
   fn new(source: &String) -> Self {
-    let mut leafs: Vec<HaffmanTree> = Self::count(source)
+    let mut leafs: Vec<HuffmanTree> = Self::count(source)
       .iter()
-      .map(|&(_, c)| HaffmanTree::Leaf(c))
+      .map(|&(_, c)| HuffmanTree::Leaf(c))
       .collect();
 
     leafs.sort_by(|a, b| match (a, b) {
-      (&HaffmanTree::Leaf(a), &HaffmanTree::Leaf(b)) => a.0.cmp(&b.0),
+      (&HuffmanTree::Leaf(a), &HuffmanTree::Leaf(b)) => a.0.cmp(&b.0),
       _ => unreachable!(),
     });
 
-    HaffmanTree::build_tree(leafs)
+    HuffmanTree::build_tree(leafs)
   }
 
   fn build_tree(mut trees: Vec<Self>) -> Self {
@@ -238,13 +238,13 @@ impl HaffmanTree {
         let mut remains = trees.split_off(2);
         let small_fst = trees.get(0).unwrap();
         let small_snd = trees.get(1).unwrap();
-        let new_tree = HaffmanTree::Node {
+        let new_tree = HuffmanTree::Node {
           zero: Box::new(small_snd.clone()),
           one: Box::new(small_fst.clone()),
           probability: small_fst.get_probability() + small_snd.get_probability(),
         };
         remains.push(new_tree);
-        HaffmanTree::build_tree(remains)
+        HuffmanTree::build_tree(remains)
       }
     }
   }
@@ -272,8 +272,8 @@ impl HaffmanTree {
   }
 }
 
-fn compress(source: &String) -> (String, HaffmanTable) {
-  let table = HaffmanTree::new(source).get_table();
+fn compress(source: &String) -> (String, HuffmanTable) {
+  let table = HuffmanTree::new(source).get_table();
   (
     source
       .chars()
@@ -293,11 +293,11 @@ fn compress(source: &String) -> (String, HaffmanTable) {
   )
 }
 
-fn decompress(source: &String, table: &HaffmanTable) -> String {
+fn decompress(source: &String, table: &HuffmanTable) -> String {
   let invert_table = table
     .into_iter()
     .map(|(k, v)| (v.clone().0, k.clone()))
-    .collect::<HaffmanTableInvert>();
+    .collect::<HuffmanTableInvert>();
 
   let mut source = source.clone();
   let mut result_buf = String::new();
@@ -384,14 +384,14 @@ mod test {
         ('B', ([66, 0, 0, 0], 4)),
         ('A', ([65, 0, 0, 0], 5)),
       ],
-      HaffmanTree::count(&x.to_owned())
+      HuffmanTree::count(&x.to_owned())
     );
   }
 
   #[test]
   fn test_haffman_simple_tree() {
-    use self::HaffmanTree::*;
-    let x = HaffmanTree::new(&"AAB".to_owned());
+    use self::HuffmanTree::*;
+    let x = HuffmanTree::new(&"AAB".to_owned());
     assert_eq!(
       Node {
         zero: Box::new(Leaf(([65, 0, 0, 0], 2))),
@@ -404,8 +404,8 @@ mod test {
 
   #[test]
   fn test_haffman_bit_complecated_tree() {
-    use self::HaffmanTree::*;
-    let x = HaffmanTree::new(&"AAABBC".to_owned());
+    use self::HuffmanTree::*;
+    let x = HuffmanTree::new(&"AAABBC".to_owned());
     assert_eq!(
       Node {
         zero: Box::new(Node {
@@ -422,8 +422,8 @@ mod test {
 
   #[test]
   fn test_haffman_tree() {
-    use self::HaffmanTree::*;
-    let x = HaffmanTree::new(&"AAAAABBBBCCCDDE".to_owned());
+    use self::HuffmanTree::*;
+    let x = HuffmanTree::new(&"AAAAABBBBCCCDDE".to_owned());
     assert_eq!(
       Node {
         zero: Box::new(Node {
@@ -448,7 +448,7 @@ mod test {
 
   #[test]
   fn test_haffman_table() {
-    let x = HaffmanTree::new(&"AAAAABBBBCCCDDE".to_owned()).get_table();
+    let x = HuffmanTree::new(&"AAAAABBBBCCCDDE".to_owned()).get_table();
     /*
     1000010
     1000011
@@ -464,7 +464,7 @@ mod test {
         ('D', ("100".to_owned(), 2)),
         ('E', ("101".to_owned(), 1)),
       ].into_iter()
-        .collect::<HaffmanTable>(),
+        .collect::<HuffmanTable>(),
       x
     );
   }
