@@ -53,6 +53,7 @@ fn main() {
 
     let target_language =
         value_t!(matches.value_of("target_language"), String).unwrap_or("ja".to_owned());
+    let mut fs_cache = cache::FSCache::new();
 
     if matches.is_present("languages") {
         let result = translate::language(&target_language);
@@ -60,20 +61,28 @@ fn main() {
     }
 
     if matches.is_present("query_text") {
+        let namespace = cache::Namespace::Translate;
         let query_words = values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]);
         let query_text = query_words.join(" ");
-        let translated = translate::translate(&target_language, &query_text);
+        let translated = match fs_cache.get(&namespace, &query_text) {
+            Some(definitions) => definitions,
+            None => {
+                let new_def = translate::translate(&target_language, &query_text);
+                fs_cache.set(&namespace, &query_text, &new_def);
+                new_def
+            }
+        };
         println!("{}", translated);
     };
-    let mut fs_cache = cache::FSCache::new();
     if matches.is_present("dictionary") {
+        let namespace = cache::Namespace::Dictionary;
         let query_words = values_t!(matches.values_of("dictionary"), String).unwrap_or(vec![]);
         let escaped_query_words = utils::space_to_underscore(&query_words.join(" "));
-        let definitions = match fs_cache.get(&escaped_query_words) {
+        let definitions = match fs_cache.get(&namespace, &escaped_query_words) {
             Some(definitions) => definitions,
             None => {
                 let new_def = oxford::definitions(query_words);
-                fs_cache.set(&escaped_query_words, &new_def);
+                fs_cache.set(&namespace, &escaped_query_words, &new_def);
                 new_def
             }
         };
