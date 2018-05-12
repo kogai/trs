@@ -18,7 +18,7 @@ pub enum Namespace {
 pub struct FSCache {
   version: u8,
   language: String,
-  translate: HashMap<String, String>,
+  translate: HashMap<String, HashMap<String, String>>,
   dictionary: HashMap<String, String>,
 }
 
@@ -79,7 +79,11 @@ impl FSCache {
     use self::Namespace::*;
     match namespace {
       &Dictionary => self.dictionary.get(key).cloned(),
-      &Translate => self.translate.get(key).cloned(),
+      &Translate => self
+        .translate
+        .get(&self.language)
+        .and_then(|map| map.get(key))
+        .cloned(),
     }
   }
 
@@ -95,8 +99,31 @@ impl FSCache {
   pub fn set(&mut self, namespace: &Namespace, key: &String, value: &String) {
     use self::Namespace::*;
     match namespace {
-      &Dictionary => self.dictionary.insert(key.to_owned(), value.to_owned()),
-      &Translate => self.translate.insert(key.to_owned(), value.to_owned()),
+      &Dictionary => {
+        self.dictionary.insert(key.to_owned(), value.to_owned());
+      }
+      &Translate => {
+        let translation_map = match self.translate.get_mut(&self.language) {
+          Some(mut map) => {
+            map.insert(key.to_owned(), value.to_owned());
+            None
+          }
+          None => {
+            let mut map = HashMap::new();
+            map.insert(key.to_owned(), value.to_owned());
+            Some(map)
+          }
+        };
+
+        match &translation_map {
+          Some(map) => {
+            self
+              .translate
+              .insert(self.language.to_owned(), map.to_owned());
+          }
+          None => {}
+        };
+      }
     };
     self.update_cache();
   }
