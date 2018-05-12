@@ -25,14 +25,20 @@ That's all.
 ## Usage
 
 ```bash
-$ trs -q Hello world
+$ trs Hello world
 # こんにちは世界
 
-$ trs -q こんにちは 世界 -t en
+$ trs --from-target-language こんにちは
+$ trs -f こんにちは
 # Hello world
 
+$ trs change-language zh
+$ trs Hello
+# 你好
+
 $ trs -d dog
-# Show definitions and example to use the word
+$ trs --definition dog
+# Show formal definitions and example to use the word (of British English)
 
 $ trs --version
 $ trs --help

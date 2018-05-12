@@ -1,14 +1,27 @@
+use serde_json;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::collections::HashMap;
-use serde_json;
 
+const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
 const NULL: u8 = 0;
 
-pub struct FSCache(HashMap<String, String>);
+pub enum Namespace {
+  Translate,
+  Dictionary,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct FSCache {
+  version: u8,
+  language: String,
+  translate: HashMap<String, HashMap<String, String>>,
+  dictionary: HashMap<String, String>,
+}
+
 impl FSCache {
   #[cfg(not(debug_assertions))]
   fn get_cache() -> PathBuf {
@@ -26,31 +39,99 @@ impl FSCache {
 
   pub fn new() -> Self {
     let cache_file = Self::get_cache();
-    let cache = match fs::File::open(&cache_file) {
+    match fs::File::open(&cache_file) {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
         let json = FSCache::decompress(buf);
-        serde_json::from_str::<HashMap<String, String>>(&json)
-          .expect(format!("Cache file seems did not save correctly\n{}", &json).as_ref())
+        // Try parsing version 0
+        match serde_json::from_str::<HashMap<String, String>>(&json) {
+          Ok(json) => FSCache {
+            version: 1,
+            language: DEFAULT_TARGET_LANGUAGE.to_owned(),
+            translate: HashMap::new(),
+            dictionary: json,
+          },
+          Err(_) => match serde_json::from_str::<FSCache>(&json) {
+            Ok(json) => json,
+            Err(err) => {
+              unreachable!(format!(
+                "Cache file seems did not save correctly\nSource: \n{}\nError: \n{:?}",
+                &json, err
+              ));
+            }
+          },
+        }
       }
       Err(_) => {
         let _ = fs::File::create(cache_file);
-        HashMap::new()
+        FSCache {
+          version: 1,
+          language: DEFAULT_TARGET_LANGUAGE.to_owned(),
+          translate: HashMap::new(),
+          dictionary: HashMap::new(),
+        }
+      }
+    }
+  }
+
+  pub fn get(&self, namespace: &Namespace, key: &String) -> Option<String> {
+    use self::Namespace::*;
+    match namespace {
+      &Dictionary => self.dictionary.get(key).cloned(),
+      &Translate => self
+        .translate
+        .get(&self.language)
+        .and_then(|map| map.get(key))
+        .cloned(),
+    }
+  }
+
+  pub fn get_language(&self) -> String {
+    self.language.clone()
+  }
+
+  pub fn set_language(&mut self, language: &String) {
+    self.language = language.to_owned();
+    self.update_cache();
+  }
+
+  pub fn set(&mut self, namespace: &Namespace, key: &String, value: &String) {
+    use self::Namespace::*;
+    match namespace {
+      &Dictionary => {
+        self.dictionary.insert(key.to_owned(), value.to_owned());
+      }
+      &Translate => {
+        let translation_map = match self.translate.get_mut(&self.language) {
+          Some(mut map) => {
+            map.insert(key.to_owned(), value.to_owned());
+            None
+          }
+          None => {
+            let mut map = HashMap::new();
+            map.insert(key.to_owned(), value.to_owned());
+            Some(map)
+          }
+        };
+
+        match &translation_map {
+          Some(map) => {
+            self
+              .translate
+              .insert(self.language.to_owned(), map.to_owned());
+          }
+          None => {}
+        };
       }
     };
-    FSCache(cache)
+    self.update_cache();
   }
 
-  pub fn get(&self, key: &String) -> Option<String> {
-    self.0.get(key).cloned()
-  }
-
-  pub fn set(&mut self, key: &String, value: &String) {
-    self.0.insert(key.to_owned(), value.to_owned());
+  fn update_cache(&mut self) {
     match (
       fs::File::create(&Self::get_cache()),
-      serde_json::to_string_pretty(&self.0),
+      serde_json::to_string_pretty(&self),
     ) {
       (Ok(mut file), Ok(buf)) => {
         let _ = file.write_all(&mut FSCache::compress(&buf));
