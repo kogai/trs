@@ -33,8 +33,8 @@ $ trs -f こんにちは
 # Hello world
 
 $ trs change-language zh
-$ trs Hello
-# 你好
+$ trs Hello # 你好
+$ trs -f 你好 # Hello
 
 $ trs -d dog
 $ trs --definition dog

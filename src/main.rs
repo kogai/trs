@@ -30,6 +30,7 @@ fn main() {
                 .short("l")
                 .help("See the list of languages"),
         )
+        .arg(Arg::with_name("cat").help("Show current cache"))
         .arg(
             Arg::with_name("dictionary")
                 .help("See formal English definition of the words")
@@ -51,15 +52,9 @@ fn main() {
                 .multiple(true),
         )
         .arg(
-            Arg::with_name("query_text")
+            Arg::with_name("to-target-language")
                 .help("Set the words that translate to")
-                .index(1)
-                .required_unless_one(&[
-                    "from-target-language",
-                    "languages",
-                    "dictionary",
-                    "change-language",
-                ])
+                .short("t")
                 .takes_value(true)
                 .multiple(true),
         )
@@ -96,10 +91,16 @@ fn main() {
         exit(0);
     };
 
+    if matches.is_present("cat") {
+        let cache = fs_cache.get_all();
+        println!("{}", cache);
+        exit(0);
+    };
+
     let namespace = cache::Namespace::Translate;
-    let (query_words, target_language) = if matches.is_present("query_text") {
+    let (query_words, target_language) = if matches.is_present("to-target-language") {
         (
-            values_t!(matches.values_of("query_text"), String).unwrap_or(vec![]),
+            values_t!(matches.values_of("to-target-language"), String).unwrap_or(vec![]),
             default_language,
         )
     } else if matches.is_present("from-target-language") {
@@ -121,4 +122,5 @@ fn main() {
         }
     };
     println!("{}", translated);
+    fs_cache.gabadge_collect();
 }

@@ -91,6 +91,10 @@ impl FSCache {
     self.language.clone()
   }
 
+  pub fn get_all(&self) -> String {
+    serde_json::to_string_pretty(&self).unwrap_or("".to_owned())
+  }
+
   pub fn set_language(&mut self, language: &String) {
     self.language = language.to_owned();
     self.update_cache();
@@ -190,6 +194,10 @@ impl FSCache {
     let cache_string = string_of_bit((cache_raw.to_vec(), pad_of_last.clone()));
     let cache = decompress(&cache_string, &table);
     cache
+  }
+
+  pub fn gabadge_collect(&self) {
+    unimplemented!();
   }
 }
 
