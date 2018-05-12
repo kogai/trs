@@ -4,9 +4,11 @@ use std::env;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
+const HIGH_WATER_MARK: u8 = 128; // 128kib
 const NULL: u8 = 0;
 
 pub enum Namespace {
@@ -15,11 +17,14 @@ pub enum Namespace {
 }
 
 #[derive(Deserialize, Serialize)]
+struct FsCacheValue(SystemTime, String);
+
+#[derive(Deserialize, Serialize)]
 pub struct FSCache {
   version: u8,
   language: String,
-  translate: HashMap<String, HashMap<String, String>>,
-  dictionary: HashMap<String, String>,
+  translate: HashMap<String, HashMap<String, FsCacheValue>>,
+  dictionary: HashMap<String, FsCacheValue>,
 }
 
 impl FSCache {
@@ -45,7 +50,7 @@ impl FSCache {
         let _ = file.read_to_end(&mut buf);
         let json = FSCache::decompress(buf);
         // Try parsing version 0
-        match serde_json::from_str::<HashMap<String, String>>(&json) {
+        match serde_json::from_str::<HashMap<String, FsCacheValue>>(&json) {
           Ok(json) => FSCache {
             version: 1,
             language: DEFAULT_TARGET_LANGUAGE.to_owned(),
@@ -78,12 +83,12 @@ impl FSCache {
   pub fn get(&self, namespace: &Namespace, key: &String) -> Option<String> {
     use self::Namespace::*;
     match namespace {
-      &Dictionary => self.dictionary.get(key).cloned(),
+      &Dictionary => self.dictionary.get(key).and_then(|v| Some(v.1.to_owned())),
       &Translate => self
         .translate
         .get(&self.language)
         .and_then(|map| map.get(key))
-        .cloned(),
+        .and_then(|v| Some(v.1.to_owned())),
     }
   }
 
@@ -104,26 +109,33 @@ impl FSCache {
     use self::Namespace::*;
     match namespace {
       &Dictionary => {
-        self.dictionary.insert(key.to_owned(), value.to_owned());
+        self.dictionary.insert(
+          key.to_owned(),
+          FsCacheValue(SystemTime::now(), value.to_owned()),
+        );
       }
       &Translate => {
         let translation_map = match self.translate.get_mut(&self.language) {
           Some(mut map) => {
-            map.insert(key.to_owned(), value.to_owned());
+            map.insert(
+              key.to_owned(),
+              FsCacheValue(SystemTime::now(), value.to_owned()),
+            );
             None
           }
           None => {
             let mut map = HashMap::new();
-            map.insert(key.to_owned(), value.to_owned());
+            map.insert(
+              key.to_owned(),
+              FsCacheValue(SystemTime::now(), value.to_owned()),
+            );
             Some(map)
           }
         };
 
-        match &translation_map {
+        match translation_map {
           Some(map) => {
-            self
-              .translate
-              .insert(self.language.to_owned(), map.to_owned());
+            self.translate.insert(self.language.to_owned(), map);
           }
           None => {}
         };
