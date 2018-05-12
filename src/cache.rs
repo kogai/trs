@@ -1,16 +1,15 @@
+use serde_json;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::collections::HashMap;
-use serde_json;
 
 const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
 const NULL: u8 = 0;
 
 pub enum Namespace {
-  Language,
   Translate,
   Dictionary,
 }
@@ -79,10 +78,18 @@ impl FSCache {
   pub fn get(&self, namespace: &Namespace, key: &String) -> Option<String> {
     use self::Namespace::*;
     match namespace {
-      &Language => Some(self.language.clone()),
       &Dictionary => self.dictionary.get(key).cloned(),
       &Translate => self.translate.get(key).cloned(),
     }
+  }
+
+  pub fn get_language(&self) -> String {
+    self.language.clone()
+  }
+
+  pub fn set_language(&mut self, language: &String) {
+    self.language = language.to_owned();
+    self.update_cache();
   }
 
   pub fn set(&mut self, namespace: &Namespace, key: &String, value: &String) {
@@ -90,8 +97,11 @@ impl FSCache {
     match namespace {
       &Dictionary => self.dictionary.insert(key.to_owned(), value.to_owned()),
       &Translate => self.translate.insert(key.to_owned(), value.to_owned()),
-      _ => unreachable!(),
     };
+    self.update_cache();
+  }
+
+  fn update_cache(&mut self) {
     match (
       fs::File::create(&Self::get_cache()),
       serde_json::to_string_pretty(&self),
