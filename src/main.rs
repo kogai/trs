@@ -30,7 +30,7 @@ fn main() {
                 .short("l")
                 .help("See the list of languages"),
         )
-        .arg(Arg::with_name("cat").help("Show current cache"))
+        .arg(Arg::with_name("cat").help("Show current cache").short("c"))
         .arg(
             Arg::with_name("dictionary")
                 .help("See formal English definition of the words")
@@ -41,7 +41,7 @@ fn main() {
         .arg(
             Arg::with_name("change-language")
                 .help("Change the language correspoinding to english")
-                .short("c")
+                .short("C")
                 .takes_value(true),
         )
         .arg(
