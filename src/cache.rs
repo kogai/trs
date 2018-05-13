@@ -60,12 +60,14 @@ impl FSCache {
       Some(json) => json,
       None => {
         let _ = fs::File::create(cache_file);
-        FSCache {
+        let mut fs_cache = FSCache {
           version: 2,
           language: DEFAULT_TARGET_LANGUAGE.to_owned(),
           translate: HashMap::new(),
           dictionary: HashMap::new(),
-        }
+        };
+        fs_cache.update_cache();
+        fs_cache
       }
     }
   }
