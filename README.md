@@ -1,6 +1,6 @@
-# trs
+# TRS
 
-Command-line interface for Google Translate.
+CLI for English learners.
 
 ## How to install
 
@@ -25,15 +25,16 @@ That's all.
 ## Usage
 
 ```bash
-$ trs Hello world
+$ trs --to-target-language Hello world
+$ trs -t Hello world
 # こんにちは世界
 
 $ trs --from-target-language こんにちは
 $ trs -f こんにちは
 # Hello world
 
-$ trs change-language zh
-$ trs Hello # 你好
+$ trs --change-language zh # or simpliy `trs -C zh`
+$ trs -t Hello # 你好
 $ trs -f 你好 # Hello
 
 $ trs -d dog
