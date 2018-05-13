@@ -40,7 +40,8 @@ clean:
 	rm -rf bin
 	cargo clean
 
-.PHONY: deploy
-deploy:
-	gcloud beta functions deploy helloGET --trigger-http
+.PHONY: functions
+functions:
+	cd functions && \
+		gcloud beta functions deploy helloGET --trigger-http
 	curl https://us-central1-trslt-165501.cloudfunctions.net/helloGET
