@@ -88,6 +88,7 @@ fn main() {
             }
         };
         println!("{}", definitions);
+        let _ = fs_cache.gabadge_collect();
         exit(0);
     };
 
@@ -122,5 +123,5 @@ fn main() {
         }
     };
     println!("{}", translated);
-    fs_cache.gabadge_collect();
+    let _ = fs_cache.gabadge_collect();
 }

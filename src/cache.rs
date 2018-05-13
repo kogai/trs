@@ -2,13 +2,13 @@ use serde_json;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
 const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
-const HIGH_WATER_MARK: u8 = 128; // 128kib
+const HIGH_WATER_MARK: u64 = 128 * 1000; // 128kib
 const NULL: u8 = 0;
 
 pub enum Namespace {
@@ -16,7 +16,7 @@ pub enum Namespace {
   Dictionary,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 struct FsCacheValue(SystemTime, String);
 
 #[derive(Deserialize, Serialize)]
@@ -44,34 +44,24 @@ impl FSCache {
 
   pub fn new() -> Self {
     let cache_file = Self::get_cache();
-    match fs::File::open(&cache_file) {
+    let maybe_json = match fs::File::open(&cache_file) {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
         let json = FSCache::decompress(buf);
-        // Try parsing version 0
-        match serde_json::from_str::<HashMap<String, FsCacheValue>>(&json) {
-          Ok(json) => FSCache {
-            version: 1,
-            language: DEFAULT_TARGET_LANGUAGE.to_owned(),
-            translate: HashMap::new(),
-            dictionary: json,
-          },
-          Err(_) => match serde_json::from_str::<FSCache>(&json) {
-            Ok(json) => json,
-            Err(err) => {
-              unreachable!(format!(
-                "Cache file seems did not save correctly\nSource: \n{}\nError: \n{:?}",
-                &json, err
-              ));
-            }
-          },
+        match serde_json::from_str::<FSCache>(&json) {
+          Ok(json) => Some(json),
+          Err(_) => None,
         }
       }
-      Err(_) => {
+      Err(_) => None,
+    };
+    match maybe_json {
+      Some(json) => json,
+      None => {
         let _ = fs::File::create(cache_file);
         FSCache {
-          version: 1,
+          version: 2,
           language: DEFAULT_TARGET_LANGUAGE.to_owned(),
           translate: HashMap::new(),
           dictionary: HashMap::new(),
@@ -208,8 +198,40 @@ impl FSCache {
     cache
   }
 
-  pub fn gabadge_collect(&self) {
-    unimplemented!();
+  pub fn gabadge_collect(&mut self) -> io::Result<()> {
+    let cache_file = Self::get_cache();
+    let file = fs::File::open(&cache_file)?;
+    let file_size = file.metadata().and_then(|meta| Ok(meta.len()))?;
+    if file_size < HIGH_WATER_MARK {
+      return Ok(());
+    }
+
+    fn collect_young_cache(map: HashMap<String, FsCacheValue>) -> HashMap<String, FsCacheValue> {
+      let delete_range = 3;
+      let mut sorted = map.into_iter().collect::<Vec<_>>();
+      sorted.sort_by(|&(_, FsCacheValue(a, _)), &(_, FsCacheValue(b, _))| a.cmp(&b));
+
+      let young_caches = if sorted.len() >= delete_range {
+        sorted.split_off(delete_range)
+      } else {
+        sorted
+      };
+      young_caches.into_iter().collect()
+    }
+
+    let young_dictionary = collect_young_cache(self.dictionary.to_owned());
+    let young_translates = self
+      .translate
+      .to_owned()
+      .into_iter()
+      .map(|(lang, map)| {
+        let young = collect_young_cache(map.to_owned());
+        (lang, young)
+      })
+      .collect::<HashMap<String, HashMap<String, FsCacheValue>>>();
+    self.dictionary = young_dictionary;
+    self.translate = young_translates;
+    self.gabadge_collect()
   }
 }
 
