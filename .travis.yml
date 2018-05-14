@@ -1,0 +1,27 @@
+language: rust
+cache: cargo
+matrix:
+  include:
+  - os: linux
+  - os: osx
+env:
+  secure: kO09lWUTu01RW0qq156EQC/2RtJFb6ERB6Ab37mPLJ/M73qYB2MIQVTq9u46sZbSKiUdZljKklWIemUh90rjLOb9LDwRxkOw1SNpr6fqZo/vKCmGq7VsP8GdZVfI2R/Gxfm6okJY0vvj3IfZx/t0DgcX8ZN71l0QIZmosKi541FY9R1NtEVbgxdWCwBIWhB7FbyUlEGYPaqjlosN9oJLq46gducLGvkEE9ikJq4v2ss1r3c+QUUyJUHjtzXyylQ0Ahee/EMvKwGiP5ZJJk1dy9K6HdU6msUgHcCOoVJPsYXZz+BPbhBq193FLCHc2LtKXQE1Hqd2RMw3BBADkZWtcJ/SmE2wg+1jfomyuyfIxsxiTKr+I28oDqNO4buXgviZ0PE82HNlrWSXK++X1FGlraA8f0OW3ePj9HyPYDUIR/i6Jm1q1h1JH/zASn+RCa/W1Y/qvYYZcvWTEPsAk/5xomevYGBrobQIb9u0b6HqeFTLSVmlRlclxEKSFJ6OUfhxAHuGdpJO5L5cM6eKJY7GVyzmZ5eRlt01HeKBgM1dSaqXn8j/44c/E7QW3P5tNv3IesM6KZH50isPGxKJ1VfWgmjSkBvnpIsSoRYpufnb4pIlP2birA2E9SnHrMa7BiA/gySl5O2umlQ620gwPQ+3m6oTwkQI8Olto7L6GqSjZvI=
+script:
+  - make
+
+# before_deploy:
+#   - git config --local user.name "kogai"
+#   - git config --local user.email "kogai0121@gmail.com"
+#   - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+
+deploy:
+  provider: releases
+  api_key:
+    secure: qVLCiwoX7yGasA1/DId5+Vl3kDMl7fZGa/jhekjqwpcmuVIZiPgkBpDF6hJvATUvnnWV9AoyeIaD/3pCUe2m/WT5wifPSbIJria931cgzBKJQ9shNBkvufSVZHh4wC5bFPt2HGBfnV4uK5olZhKXYGl+E+z+4afQuOzevRm50PXybDxvIkVt1/HK3G/f6QmVPG0DBUWBypqNwf7h4KKaFYilo98gjetR6xCiQ9twFmRAsJn2RZYdPqVD2dI2SMQva2rwDi5ocFlS5Kgkbo3rG7tqkVCr7eKwC29+bX6iMjAQgT0KGIU8VoMgMRDliZgWfScg6ODS22Q7DHblvhYFskC4qDW0LpYUvXENbzjMM6VP7seZ82HjvgRR3q7NDthBSBckscXuuIzlSxcdpD7N1JMLqGVpbRP6mrEEiEIdYMXVzzm+bhmyvpsqa5LeVa+rRT6Rq0fvZfnCbIjnK0kbvz89PRskLeQEDXTx0dCwELsVI2Q25cc+LRnpehdmDln7cyutwpkfU2vRWwkY6xa2NSQeSaS35PZ4ovXkKC/7FeQPz/TT4riQG6SD/cWLPdCLf9hUfTT/a19K6zbzIv+aqRteng50dWL005I6MlpUChTMsc8TNHV9AkWRRaZki74E1ymo9tEc51n2iSdG9M66kxlZIdOvV2OVJb0aQqiYHE8=
+  skip_cleanup: true
+  file: "bin/*"
+  on:
+    tags: true
+notifications:
+  email:
+    on_success: never
