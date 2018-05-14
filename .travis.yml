@@ -4,50 +4,29 @@ matrix:
   include:
     # Stable channel.
     - os: linux
-      rust: stable
-      env: TARGET=x86_64-unknown-linux-gnu
-    - os: linux
-      rust: stable
-      env:
-        - TARGET=x86_64-unknown-linux-musl
-        - CC_x86_64_unknown_linux_musl=/usr/bin/musl-gcc
-    - os: linux
-      rust: stable
-      env: TARGET=i686-unknown-linux-gnu
+      # rust: stable
+      # env: TARGET=x86_64-unknown-linux-gnu
+    # - os: linux
+    #   rust: stable
+    #   env:
+    #     - TARGET=x86_64-unknown-linux-musl
+    #     - CC_x86_64_unknown_linux_musl=/usr/bin/musl-gcc
+    # - os: linux
+    #   rust: stable
+    #   env: TARGET=i686-unknown-linux-gnu
     - os: osx
-      rust: stable
+      # rust: stable
       env: TARGET=x86_64-apple-darwin
 
-    # Minimum Rust supported channel.
-    - os: linux
-      rust: 1.24.0
-      env: TARGET=x86_64-unknown-linux-gnu
-    - os: linux
-      rust: 1.24.0
-      env:
-        - TARGET=x86_64-unknown-linux-musl
-        - CC_x86_64_unknown_linux_musl=/usr/bin/musl-gcc
-    - os: osx
-      rust: 1.24.0
-      env: TARGET=x86_64-apple-darwin
-
-    # Code formatting check
-    - os: linux
-      rust: nightly
-      # skip the global install step
-      install:
-        - cargo install --debug --force rustfmt-nightly
-      script: cargo fmt -- --write-mode=diff
-
-addons:
-  apt:
-    packages:
-      # needed for i686-unknown-linux-gnu target
-      - gcc-multilib
-      # needed for musl targets
-      - musl-tools
-      # needed to build deb packages
-      - fakeroot
+# addons:
+#   apt:
+#     packages:
+#       # needed for i686-unknown-linux-gnu target
+#       - gcc-multilib
+#       # needed for musl targets
+#       - musl-tools
+#       # needed to build deb packages
+#       - fakeroot
 
 env:
   global:
@@ -57,19 +36,15 @@ env:
     # Used on the deployment script
     - PROJECT_NAME=bat
 
-install:
-  # prevent target re-add error from rustup
-  - if [[ $TRAVIS_OS_NAME = linux && $HOST != $TARGET ]]; then rustup target add $TARGET; fi
+# install:
+#   # prevent target re-add error from rustup
+#   - if [[ $TRAVIS_OS_NAME = linux && $HOST != $TARGET ]]; then rustup target add $TARGET; fi
 
 script:
-  # Incorporate TARGET env var to the build and test process
-  - cargo build --target $TARGET --verbose
-  - cargo test --target $TARGET --verbose
-  # Run 'bat' on its own source code and the README
-  - cargo run --target $TARGET -- src/main.rs README.md --paging=never
+  - make
 
-before_deploy:
-  - bash ci/before_deploy.bash
+# before_deploy:
+#   - bash ci/before_deploy.bash
 
 deploy:
   provider: releases
@@ -78,24 +53,24 @@ deploy:
   # - generate new token using `public_repo` scope
   # - encrypt it using: `travis encrypt API_KEY_HERE`
   # - paste the output below
-  api_key:
-    secure: "GZL8nYk+/MZGEqejpP0UMMGVmwUEdxiF9CflFIGccu+/tznDyHnHOpyJmbH3M5IKWIxa7xFgqOE8pHuD4oQXt4mzyJGB0KMKKEFLW7ckbTYKya5bw0heKznaqGnS0Yz+vpfqYR25eiPFYCz7mDsGsCzH5QZqt3cdn9MDQGu1D0IaxPjuBNH3T9kBblR0ifBd3Diy0JYhiVcMSI3V1rkel18F1yBHO2GQ95hkWxVgjANQnefq5+zdzbx4ki539ewYENShA8N0w6ULJVY9LmWRWJIp90ggOD3JCH6Nz/fBpYBqwfABO6Dr7Csw7IRm7pM4IVkFZS1taiDYFX9thxZh3UTmI4YYtSTPxH9NGV47kxPipbf4vAXFwW+1VcHKMpBzz+5IVsHnk1Pfx9/GZsXbqXM3PUWCStec36Xtqh5vQapDKEg9khkEs4b1X7/E73gvpRuQl9gbnyufSVWgDsXIWqM+0aDbqQz1FpLmVxz6eij0cB9vR+8kbNoe/CEPHPO9ZllvAHseukOeHPzSBd8rILORXaaGmQausXz2wWgSsffUSYz4705P8joI0zFCfmkHjL+kA1ZUx5SxLCc1ID7CFFZChhAxHoPL7xc21snswwr8QeheERdwvuzKNaerBGZEw8dmMMx98YkjftIj65DDySr2mRZuufBQeQpmMhFyIT4="
+  # api_key:
+  #   secure: "GZL8nYk+/MZGEqejpP0UMMGVmwUEdxiF9CflFIGccu+/tznDyHnHOpyJmbH3M5IKWIxa7xFgqOE8pHuD4oQXt4mzyJGB0KMKKEFLW7ckbTYKya5bw0heKznaqGnS0Yz+vpfqYR25eiPFYCz7mDsGsCzH5QZqt3cdn9MDQGu1D0IaxPjuBNH3T9kBblR0ifBd3Diy0JYhiVcMSI3V1rkel18F1yBHO2GQ95hkWxVgjANQnefq5+zdzbx4ki539ewYENShA8N0w6ULJVY9LmWRWJIp90ggOD3JCH6Nz/fBpYBqwfABO6Dr7Csw7IRm7pM4IVkFZS1taiDYFX9thxZh3UTmI4YYtSTPxH9NGV47kxPipbf4vAXFwW+1VcHKMpBzz+5IVsHnk1Pfx9/GZsXbqXM3PUWCStec36Xtqh5vQapDKEg9khkEs4b1X7/E73gvpRuQl9gbnyufSVWgDsXIWqM+0aDbqQz1FpLmVxz6eij0cB9vR+8kbNoe/CEPHPO9ZllvAHseukOeHPzSBd8rILORXaaGmQausXz2wWgSsffUSYz4705P8joI0zFCfmkHjL+kA1ZUx5SxLCc1ID7CFFZChhAxHoPL7xc21snswwr8QeheERdwvuzKNaerBGZEw8dmMMx98YkjftIj65DDySr2mRZuufBQeQpmMhFyIT4="
   # for uploading multiple files
-  file_glob: true
+  # file_glob: true
   # NOTE explanation on each env variable
   # - PROJECT_NAME: name of the project, set on the `env.global` above
   # - TRAVIS_TAG: tag name that the build is being deployed for, usually the version number
   # - TARGET: target triple of the build
-  file:
-    - $PROJECT_NAME-$TRAVIS_TAG-$TARGET.*
-    - $PROJECT_NAME*.deb
+  # file:
+  #   - $PROJECT_NAME-$TRAVIS_TAG-$TARGET.*
+  #   - $PROJECT_NAME*.deb
   # don't delete artifacts from previous stage
   skip_cleanup: true
-  on:
-    # deploy only if we push a tag
-    tags: true
-    # deploy only on stable channel that has TARGET env variable sets
-    condition: $TRAVIS_RUST_VERSION = stable && $TARGET != ""
+  # on:
+  #   # deploy only if we push a tag
+  #   tags: true
+  #   # deploy only on stable channel that has TARGET env variable sets
+  #   condition: $TRAVIS_RUST_VERSION = stable && $TARGET != ""
 
 notifications:
   email:
