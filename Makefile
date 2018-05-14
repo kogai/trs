@@ -39,3 +39,14 @@ cache:
 clean:
 	rm -rf bin
 	cargo clean
+
+.PHONY: secret
+secret:
+	travis encrypt \
+		GOOGLE_CLOUD_PLATFORM_API_KEY="${GOOGLE_CLOUD_PLATFORM_API_KEY}" \
+		OXFORD_API_ID="${OXFORD_API_ID}" \
+		OXFORD_API_KEY="${OXFORD_API_KEY}" \
+		--add env
+	travis encrypt \
+		GITHUB_API_TOKEN="${GITHUB_API_TOKEN}" \
+		--add deploy.api_key
