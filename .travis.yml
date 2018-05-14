@@ -9,10 +9,10 @@ env:
 script:
   - make
 
-before_deploy:
-  - git config --local user.name "kogai"
-  - git config --local user.email "kogai0121@gmail.com"
-  - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+# before_deploy:
+#   - git config --local user.name "kogai"
+#   - git config --local user.email "kogai0121@gmail.com"
+#   - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
 
 deploy:
   provider: releases
