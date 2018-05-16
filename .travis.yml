@@ -17,9 +17,12 @@ script:
 deploy:
   provider: releases
   api_key:
-    secure: qVLCiwoX7yGasA1/DId5+Vl3kDMl7fZGa/jhekjqwpcmuVIZiPgkBpDF6hJvATUvnnWV9AoyeIaD/3pCUe2m/WT5wifPSbIJria931cgzBKJQ9shNBkvufSVZHh4wC5bFPt2HGBfnV4uK5olZhKXYGl+E+z+4afQuOzevRm50PXybDxvIkVt1/HK3G/f6QmVPG0DBUWBypqNwf7h4KKaFYilo98gjetR6xCiQ9twFmRAsJn2RZYdPqVD2dI2SMQva2rwDi5ocFlS5Kgkbo3rG7tqkVCr7eKwC29+bX6iMjAQgT0KGIU8VoMgMRDliZgWfScg6ODS22Q7DHblvhYFskC4qDW0LpYUvXENbzjMM6VP7seZ82HjvgRR3q7NDthBSBckscXuuIzlSxcdpD7N1JMLqGVpbRP6mrEEiEIdYMXVzzm+bhmyvpsqa5LeVa+rRT6Rq0fvZfnCbIjnK0kbvz89PRskLeQEDXTx0dCwELsVI2Q25cc+LRnpehdmDln7cyutwpkfU2vRWwkY6xa2NSQeSaS35PZ4ovXkKC/7FeQPz/TT4riQG6SD/cWLPdCLf9hUfTT/a19K6zbzIv+aqRteng50dWL005I6MlpUChTMsc8TNHV9AkWRRaZki74E1ymo9tEc51n2iSdG9M66kxlZIdOvV2OVJb0aQqiYHE8=
+    secure: JVEtJffpV16ymfhKzEshQsAj9OG76oLfm1py3CDtL7+BIXbW20RdGH6kLR3NDqIKdhJGP3bn/7bz+h86a689vpGh/1nmwu5K+VsKa5kOqZNC9S/hj/mcI7dJjJ20Y4BVCFAEQ5E+H/Q50/RC6FTi056yA3LhLU4znqBhHGPlzQQRTKKTAle6VptzgX6LuSA0PCYMSOswzraW2MMPwh5WmXAcEaj/hoyaMkhxfb2l8hCjmaS7+386/WK7vB0tWxutqrlomAopeBvUXa5Qqtqsc6dKoOmFL2CCUTwnu0aI35GpgylUNbpjSrlk2YSJ6dZjZBEI0Br69cIsmrrvFKBz+ZS7R95liHYR5sOc1E69PAdV5340X9EzrfwUwmzeT3w+ajV5/3VSyvvFZTzHWTGfzMOVv57QO/4Z1AdyXX8pDOw22o3N4MVQkVp8Pq8QH1/ok0kUvWt1hPrn/drdywudpsGn6qTjHNbzwgv9krk/DZYVENP5u9OJMGUtbApHKKd/BE5xW/wjgBd7H2AXG8dYMt5D54bzMo6EVnSFf6977GXmOoDWP3MSt54HVNW55dbPfd9A7AoliWfPGv5GP7Z3dv0rpNl9X8LDHWZ/obu6AVt4W5lUtzFHSFH+IN5birJsrh0BdU1QBmfO5NB4NbiF3pbEW2ok0rxLbYsaL8HJ6yU=
   skip_cleanup: true
-  file: "bin/*"
+  # file:
+  #   - "bin/Linux/trs"
+  #   - "bin/Darwin/trs"
+    file: "bin/Darwin/trs"
   on:
     tags: true
 notifications:
