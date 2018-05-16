@@ -50,3 +50,11 @@ secret:
 	travis encrypt \
 		GITHUB_API_TOKEN="${GITHUB_API_TOKEN}" \
 		--add deploy.api_key
+
+.PHONY: deploy
+deploy:
+	# git cm -a -m "build by travis"
+	git cm -a --amend --no-edit
+	git tag -fa v0.4.5 -m ""
+	git push -f --tags
+	
