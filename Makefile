@@ -7,6 +7,7 @@ GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
 OS := $(shell uname)
+VERSION := $(shell cat Cargo.toml | grep version | sed -e 's/version\ =\ \"\(.*\)\"/\1/')
 
 bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) && \
@@ -51,10 +52,8 @@ secret:
 		GITHUB_API_TOKEN="${GITHUB_API_TOKEN}" \
 		--add deploy.api_key
 
-.PHONY: deploy
-deploy:
-	# git cm -a -m "build by travis"
-	git cm -a --amend --no-edit
-	git tag -fa v0.4.5 -m ""
-	git push -f --tags
+.PHONY: release
+release:
+	git tag -af "v${VERSION}" -m ""
+	git push --tags
 	
