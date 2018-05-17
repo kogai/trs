@@ -4,6 +4,8 @@ CLI for English learners.
 
 ## Usage
 
+[![asciicast](https://asciinema.org/a/Kb2wPXEYMpFKfv08LajsjS38E.png)](https://asciinema.org/a/Kb2wPXEYMpFKfv08LajsjS38E)
+
 ```bash
 $ trs --to-target-language Hello world
 $ trs -t Hello world
