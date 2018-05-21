@@ -1,0 +1,35 @@
+language: rust
+cache: cargo
+matrix:
+  include:
+  - os: linux
+    env: TARGET=x86_64-unknown-linux-gnu
+  - os: osx
+    env: TARGET=x86_64-apple-darwin
+env:
+  global:
+    - PROJECT_NAME=trs
+    - secure: kO09lWUTu01RW0qq156EQC/2RtJFb6ERB6Ab37mPLJ/M73qYB2MIQVTq9u46sZbSKiUdZljKklWIemUh90rjLOb9LDwRxkOw1SNpr6fqZo/vKCmGq7VsP8GdZVfI2R/Gxfm6okJY0vvj3IfZx/t0DgcX8ZN71l0QIZmosKi541FY9R1NtEVbgxdWCwBIWhB7FbyUlEGYPaqjlosN9oJLq46gducLGvkEE9ikJq4v2ss1r3c+QUUyJUHjtzXyylQ0Ahee/EMvKwGiP5ZJJk1dy9K6HdU6msUgHcCOoVJPsYXZz+BPbhBq193FLCHc2LtKXQE1Hqd2RMw3BBADkZWtcJ/SmE2wg+1jfomyuyfIxsxiTKr+I28oDqNO4buXgviZ0PE82HNlrWSXK++X1FGlraA8f0OW3ePj9HyPYDUIR/i6Jm1q1h1JH/zASn+RCa/W1Y/qvYYZcvWTEPsAk/5xomevYGBrobQIb9u0b6HqeFTLSVmlRlclxEKSFJ6OUfhxAHuGdpJO5L5cM6eKJY7GVyzmZ5eRlt01HeKBgM1dSaqXn8j/44c/E7QW3P5tNv3IesM6KZH50isPGxKJ1VfWgmjSkBvnpIsSoRYpufnb4pIlP2birA2E9SnHrMa7BiA/gySl5O2umlQ620gwPQ+3m6oTwkQI8Olto7L6GqSjZvI=
+
+script:
+  - make
+
+before_deploy:
+  - ls -lha bin
+  - tar czf "$(pwd)/$PROJECT_NAME-$TRAVIS_TAG-$TARGET.tar.gz" bin/*
+  - ls -lha
+
+deploy:
+  provider: releases
+  api_key:
+    secure: JVEtJffpV16ymfhKzEshQsAj9OG76oLfm1py3CDtL7+BIXbW20RdGH6kLR3NDqIKdhJGP3bn/7bz+h86a689vpGh/1nmwu5K+VsKa5kOqZNC9S/hj/mcI7dJjJ20Y4BVCFAEQ5E+H/Q50/RC6FTi056yA3LhLU4znqBhHGPlzQQRTKKTAle6VptzgX6LuSA0PCYMSOswzraW2MMPwh5WmXAcEaj/hoyaMkhxfb2l8hCjmaS7+386/WK7vB0tWxutqrlomAopeBvUXa5Qqtqsc6dKoOmFL2CCUTwnu0aI35GpgylUNbpjSrlk2YSJ6dZjZBEI0Br69cIsmrrvFKBz+ZS7R95liHYR5sOc1E69PAdV5340X9EzrfwUwmzeT3w+ajV5/3VSyvvFZTzHWTGfzMOVv57QO/4Z1AdyXX8pDOw22o3N4MVQkVp8Pq8QH1/ok0kUvWt1hPrn/drdywudpsGn6qTjHNbzwgv9krk/DZYVENP5u9OJMGUtbApHKKd/BE5xW/wjgBd7H2AXG8dYMt5D54bzMo6EVnSFf6977GXmOoDWP3MSt54HVNW55dbPfd9A7AoliWfPGv5GP7Z3dv0rpNl9X8LDHWZ/obu6AVt4W5lUtzFHSFH+IN5birJsrh0BdU1QBmfO5NB4NbiF3pbEW2ok0rxLbYsaL8HJ6yU=
+  skip_cleanup: true
+  file_glob: true
+  file:
+    - $PROJECT_NAME-$TRAVIS_TAG-$TARGET.*
+
+  on:
+    tags: true
+notifications:
+  email:
+    on_success: never
