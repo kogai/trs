@@ -2,6 +2,7 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
+extern crate flame;
 extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
@@ -19,8 +20,9 @@ mod utils;
 
 use clap::{App, Arg};
 use std::process::exit;
+use utils::span_of;
 
-fn main() {
+fn run() {
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about("CLI for English learners")
@@ -88,7 +90,7 @@ fn main() {
             }
         };
         println!("{}", definitions);
-        let _ = fs_cache.gabadge_collect();
+        let _ = fs_cache.garbage_colloect();
         exit(0);
     };
 
@@ -123,5 +125,11 @@ fn main() {
         }
     };
     println!("{}", translated);
-    let _ = fs_cache.gabadge_collect();
+    let _ = span_of("garbage_collect", || fs_cache.garbage_colloect());
+}
+
+fn main() {
+    span_of("run", || run());
+    #[cfg(debug_assertions)]
+    flame::dump_stdout();
 }

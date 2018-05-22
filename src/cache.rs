@@ -5,6 +5,7 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::time::SystemTime;
+use utils::span_of;
 
 const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
@@ -48,7 +49,8 @@ impl FSCache {
       Ok(mut file) => {
         let mut buf = Vec::new();
         let _ = file.read_to_end(&mut buf);
-        let json = FSCache::decompress(buf);
+        let json = span_of("decompress", || FSCache::decompress(buf));
+
         match serde_json::from_str::<FSCache>(&json) {
           Ok(json) => Some(json),
           Err(_) => None,
@@ -142,7 +144,7 @@ impl FSCache {
       serde_json::to_string_pretty(&self),
     ) {
       (Ok(mut file), Ok(buf)) => {
-        let _ = file.write_all(&mut FSCache::compress(&buf));
+        let _ = span_of("compress", || file.write_all(&mut FSCache::compress(&buf)));
 
         #[cfg(debug_assertions)]
         let _ = if let Ok(mut file) = fs::File::create("fixture/.trs-cache-raw") {
@@ -196,11 +198,11 @@ impl FSCache {
 
     let table = deserialize_table(table_raw.to_vec());
     let cache_string = string_of_bit((cache_raw.to_vec(), pad_of_last.clone()));
-    let cache = decompress(&cache_string, &table);
+    let cache = span_of("decompress-inner", || decompress(cache_string, &table));
     cache
   }
 
-  pub fn gabadge_collect(&mut self) -> io::Result<()> {
+  pub fn garbage_colloect(&mut self) -> io::Result<()> {
     let cache_file = Self::get_cache();
     let file = fs::File::open(&cache_file)?;
     let file_size = file.metadata().and_then(|meta| Ok(meta.len()))?;
@@ -234,7 +236,7 @@ impl FSCache {
     self.dictionary = young_dictionary;
     self.translate = young_translates;
     self.update_cache();
-    self.gabadge_collect()
+    self.garbage_colloect()
   }
 }
 
@@ -419,30 +421,32 @@ fn compress(source: &String) -> (String, HuffmanTable) {
   )
 }
 
-fn decompress(source: &String, table: &HuffmanTable) -> String {
+fn decompress(mut source: String, table: &HuffmanTable) -> String {
   let invert_table = table
     .into_iter()
     .map(|(k, v)| (v.clone().0, k.clone()))
     .collect::<HuffmanTableInvert>();
 
-  let mut source = source.clone();
   let mut result_buf = String::new();
   let mut code_buf = String::new();
 
-  while (source.len() > 0) || (code_buf.len() > 0) {
-    match invert_table.get(&code_buf) {
-      Some(next_char) => {
-        code_buf.clear();
-        result_buf = format!("{}{}", result_buf, next_char);
-      }
-      None => {
-        let source_tmp = source.clone();
-        let (c, next) = source_tmp.split_at(1);
-        code_buf = format!("{}{}", code_buf, c);
-        source = next.to_owned();
-      }
-    };
-  }
+  // FIXME: Consider performance problem caused here.
+  span_of("iterate_over_source", || {
+    while (source.len() > 0) || (code_buf.len() > 0) {
+      match invert_table.get(&code_buf) {
+        Some(next_char) => {
+          code_buf.clear();
+          result_buf = format!("{}{}", result_buf, next_char);
+        }
+        None => {
+          let source_tmp = source.to_owned();
+          let (c, next) = source_tmp.split_at(1);
+          code_buf = format!("{}{}", code_buf, c);
+          source = next.to_owned();
+        }
+      };
+    }
+  });
   result_buf
 }
 
@@ -630,14 +634,14 @@ mod test {
   fn test_decompress_ordinary() {
     let expect = "AAAAABBBBCCCDDE".to_owned();
     let (compressed, table) = compress(&expect);
-    assert_eq!(expect, decompress(&compressed, &table));
+    assert_eq!(expect, decompress(compressed, &table));
   }
 
   #[test]
   fn test_decompress_curly() {
     let expect = "{\n\"a\": \"b\"\n}\n".to_owned();
     let (compressed, table) = compress(&expect);
-    assert_eq!(expect, decompress(&compressed, &table));
+    assert_eq!(expect, decompress(compressed, &table));
   }
 
   #[test]
