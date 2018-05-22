@@ -4,3 +4,5 @@ target/
 /bin
 .trs-cache
 .trs-cache-raw
+perf.data
+perf.data.old

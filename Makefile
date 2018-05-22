@@ -18,14 +18,32 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
 bin/Docker/$(NAME): Cargo.toml $(SRC)
-	docker build -t $(NAME) .
+	docker build \
+		--build-arg \
+			GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
+		--build-arg \
+			OXFORD_API_ID=$(OXFORD_API_ID) \
+		--build-arg \
+			OXFORD_API_KEY=$(OXFORD_API_KEY) \
+		-t $(NAME) .
+
 	docker run --rm -v `pwd`/target:/app/target \
 		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
 		-e OXFORD_API_ID=$(OXFORD_API_ID) \
 		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME)
+		-t $(NAME) \
+
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
+
+.PHONY: run/Docker
+run/Docker: Cargo.toml $(SRC)
+	docker run --rm -v `pwd`/target:/app/target \
+		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
+		-e OXFORD_API_ID=$(OXFORD_API_ID) \
+		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
+		-t $(NAME) \
+		echo "OK"
 
 .PHONY: cache
 cache:
@@ -56,4 +74,8 @@ secret:
 release:
 	git tag -af "v${VERSION}" -m ""
 	git push --tags
-	
+
+.PHONY: perf.data
+perf.data:
+	perf record -g -o ./perf.data -- $(NAME) -t cat is cute
+	perf report -g -G
