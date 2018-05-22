@@ -8,7 +8,7 @@ use std::time::SystemTime;
 
 const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
-const HIGH_WATER_MARK: u64 = 128 * 1000; // 128kib
+const HIGH_WATER_MARK: u64 = 16 * 1000; // 16kib
 const NULL: u8 = 0;
 
 pub enum Namespace {
@@ -233,6 +233,7 @@ impl FSCache {
       .collect::<HashMap<String, HashMap<String, FsCacheValue>>>();
     self.dictionary = young_dictionary;
     self.translate = young_translates;
+    self.update_cache();
     self.gabadge_collect()
   }
 }
