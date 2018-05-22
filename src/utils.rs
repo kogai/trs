@@ -1,5 +1,4 @@
 use flame;
-use std::borrow::Cow;
 
 pub fn space_to_underscore(base: &String) -> String {
   base.chars().fold("".to_owned(), |acc, c| {
@@ -11,21 +10,18 @@ pub fn space_to_underscore(base: &String) -> String {
   })
 }
 
-pub type StrCow = Cow<'static, str>;
-
 #[cfg(not(debug_assertions))]
-pub fn span_of<S, F, R>(name: S, f: F) -> R
+pub fn span_of<S, F, R>(_: S, f: F) -> R
 where
-  S: Into<StrCow>,
+  S: Into<flame::StrCow>,
   F: FnOnce() -> R,
 {
   f()
 }
-
 #[cfg(debug_assertions)]
 pub fn span_of<S, F, R>(name: S, f: F) -> R
 where
-  S: Into<StrCow>,
+  S: Into<flame::StrCow>,
   F: FnOnce() -> R,
 {
   flame::span_of(name, f)
