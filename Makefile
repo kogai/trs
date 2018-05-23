@@ -33,6 +33,13 @@ server:
 run:
 	docker run -t $(SERVER)
 
+.PHONY: login
+login:
+	hyper login \
+		-e kogai0121@gmail.com \
+		-u oauth2accesstoken \
+		-p "$(shell gcloud --project=trs-command auth print-access-token)" \
+		https://gcr.io
 .PHONY: cache
 cache:
 	rm -f .trs-cache
