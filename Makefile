@@ -4,6 +4,8 @@ SERVER := trs_server
 BIN := ./target/release/$(NAME)
 SRC := $(shell find ./src -type f -name '*.rs')
 PWD := $(shell pwd)
+GIT_HASH := $(shell git log  --pretty=format:"%H" | head -n1)
+GCP_PJ_ID := trslt-165501
 GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
@@ -18,8 +20,8 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
-.PHONY: server
-server:
+.PHONY: server/build
+server/build:
 	docker build \
 		--build-arg \
 			GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
@@ -29,8 +31,13 @@ server:
 			OXFORD_API_KEY=$(OXFORD_API_KEY) \
 		-t $(SERVER) .
 
-.PHONY: run
-run:
+.PHONY: server/push
+server/push:
+	docker tag $(SERVER) gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
+	gcloud docker -- push gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
+
+.PHONY: server/run
+server/run:
 	docker run -t $(SERVER)
 
 .PHONY: login
