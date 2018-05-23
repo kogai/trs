@@ -6,6 +6,7 @@ SRC := $(shell find ./src -type f -name '*.rs')
 PWD := $(shell pwd)
 GIT_HASH := $(shell git log  --pretty=format:"%H" | head -n1)
 GCP_PJ_ID := trslt-165501
+GCP_REPO := asia.gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
 GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
@@ -33,8 +34,10 @@ server/build:
 
 .PHONY: server/push
 server/push:
-	docker tag $(SERVER) gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
-	gcloud docker -- push gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
+	docker tag $(SERVER) $(GCP_REPO)
+	gcloud docker -- push $(GCP_REPO)
+	# pull image from Google Container Registry into Hyper
+	# hyper pull $(GCP_REPO)
 
 .PHONY: server/run
 server/run:
@@ -46,7 +49,8 @@ login:
 		-e kogai0121@gmail.com \
 		-u oauth2accesstoken \
 		-p "$(shell gcloud --project=trs-command auth print-access-token)" \
-		https://gcr.io
+		https://asia.gcr.io
+
 .PHONY: cache
 cache:
 	rm -f .trs-cache
