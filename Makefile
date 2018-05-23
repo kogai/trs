@@ -69,3 +69,7 @@ release:
 perf.data:
 	perf record -g -o ./perf.data -- $(NAME) -t cat is cute
 	perf report -g -G
+
+secrets:
+	mkdir -p secrets
+	ssh-keygen -t rsa -b 4096 -C "kogai0121@gmail.com"

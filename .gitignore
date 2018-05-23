@@ -6,3 +6,4 @@ target/
 .trs-cache-raw
 perf.data
 perf.data.old
+secrets
