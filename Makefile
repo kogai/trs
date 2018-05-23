@@ -1,5 +1,6 @@
 NAME := trs
 NAME_GEN := trs_gen
+SERVER := trs_server
 BIN := ./target/release/$(NAME)
 SRC := $(shell find ./src -type f -name '*.rs')
 PWD := $(shell pwd)
@@ -18,7 +19,7 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
 .PHONY: server
-server: Cargo.toml $(SRC)
+server:
 	docker build \
 		--build-arg \
 			GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
@@ -26,14 +27,11 @@ server: Cargo.toml $(SRC)
 			OXFORD_API_ID=$(OXFORD_API_ID) \
 		--build-arg \
 			OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) ./server
+		-t $(SERVER) .
 
-	docker run --rm -v `pwd`/target:/app/target \
-		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
-		-e OXFORD_API_ID=$(OXFORD_API_ID) \
-		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-p 8200:3000 \
-		-t $(NAME)
+.PHONY: run
+run:
+	docker run -t $(SERVER)
 
 .PHONY: cache
 cache:
@@ -48,17 +46,6 @@ cache:
 clean:
 	rm -rf bin
 	cargo clean
-
-.PHONY: secret
-secret:
-	travis encrypt \
-		GOOGLE_CLOUD_PLATFORM_API_KEY="${GOOGLE_CLOUD_PLATFORM_API_KEY}" \
-		OXFORD_API_ID="${OXFORD_API_ID}" \
-		OXFORD_API_KEY="${OXFORD_API_KEY}" \
-		--add env
-	travis encrypt \
-		GITHUB_API_TOKEN="${GITHUB_API_TOKEN}" \
-		--add deploy.api_key
 
 .PHONY: release
 release:
