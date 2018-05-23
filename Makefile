@@ -17,7 +17,8 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
-bin/Docker/$(NAME): Cargo.toml $(SRC)
+.PHONY: server
+server: Cargo.toml $(SRC)
 	docker build \
 		--build-arg \
 			GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
@@ -25,25 +26,14 @@ bin/Docker/$(NAME): Cargo.toml $(SRC)
 			OXFORD_API_ID=$(OXFORD_API_ID) \
 		--build-arg \
 			OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) .
+		-t $(NAME) ./server
 
 	docker run --rm -v `pwd`/target:/app/target \
 		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
 		-e OXFORD_API_ID=$(OXFORD_API_ID) \
 		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) \
-
-	mkdir -p bin/$(OS)
-	cp target/release/$(NAME) bin/$(OS)/$(NAME)
-
-.PHONY: run/Docker
-run/Docker: Cargo.toml $(SRC)
-	docker run --rm -v `pwd`/target:/app/target \
-		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
-		-e OXFORD_API_ID=$(OXFORD_API_ID) \
-		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) \
-		echo "OK"
+		-p 8200:3000 \
+		-t $(NAME)
 
 .PHONY: cache
 cache:
