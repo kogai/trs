@@ -11,7 +11,7 @@ ARG OXFORD_API_KEY
 
 RUN cargo build --release --bin server && \
   mkdir -p /app/bin && \
-  mv /app/target/debug/server /app/bin/server && \
+  mv /app/target/release/server /app/bin/server && \
   cargo clean
 
 EXPOSE 3000
