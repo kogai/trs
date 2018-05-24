@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: 'rust:1.25.0'
+      - image: 'rust:1.26.0'
     working_directory: ~/app
     steps:
       - checkout
@@ -14,7 +14,11 @@ jobs:
               "Cargo.lock" }}
       - run:
           name: Install dependencies
-          command: apt-get update && apt-get install -y libusb-1.0-0-dev
+          command: |
+            apt-get update && apt-get install -y libusb-1.0-0-dev
+            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+            sudo /opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            sudo /opt/google-cloud-sdk/bin/gcloud config set project $GCLOUD_PROJECT
       - run:
           name: Run tests
           command: cargo test

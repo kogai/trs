@@ -51,8 +51,8 @@ hyper/login:
 		-p "$(shell gcloud --project=trs-command auth print-access-token)" \
 		https://asia.gcr.io
 
-.PHONY: hyper/create
-hyper/create:
+.PHONY: hyper/rebuild
+hyper/rebuild: server/build, hyper/login
 	hyper func rm $(NAME) $(GCP_REPO)
 	hyper func create --name $(NAME) $(GCP_REPO)
 
