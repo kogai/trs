@@ -37,19 +37,24 @@ server/push:
 	docker tag $(SERVER) $(GCP_REPO)
 	gcloud docker -- push $(GCP_REPO)
 	# pull image from Google Container Registry into Hyper
-	# hyper pull $(GCP_REPO)
+	hyper pull $(GCP_REPO)
 
 .PHONY: server/run
-server/run:
-	docker run -t $(SERVER)
+server/run: server/build
+	docker run -t $(SERVER) -p 3000:3000
 
-.PHONY: login
-login:
+.PHONY: hyper/login
+hyper/login:
 	hyper login \
 		-e kogai0121@gmail.com \
 		-u oauth2accesstoken \
 		-p "$(shell gcloud --project=trs-command auth print-access-token)" \
 		https://asia.gcr.io
+
+.PHONY: hyper/create
+hyper/create:
+	hyper func rm $(NAME) $(GCP_REPO)
+	hyper func create --name $(NAME) $(GCP_REPO)
 
 .PHONY: cache
 cache:
