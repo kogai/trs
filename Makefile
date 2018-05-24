@@ -1,8 +1,12 @@
 NAME := trs
 NAME_GEN := trs_gen
+SERVER := trs_server
 BIN := ./target/release/$(NAME)
 SRC := $(shell find ./src -type f -name '*.rs')
 PWD := $(shell pwd)
+GIT_HASH := $(shell git log  --pretty=format:"%H" | head -n1)
+GCP_PJ_ID := trslt-165501
+GCP_REPO := asia.gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
 GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
@@ -17,7 +21,8 @@ bin/$(OS)/$(NAME): Cargo.toml $(SRC)
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
 
-bin/Docker/$(NAME): Cargo.toml $(SRC)
+.PHONY: server/build
+server/build:
 	docker build \
 		--build-arg \
 			GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
@@ -25,25 +30,35 @@ bin/Docker/$(NAME): Cargo.toml $(SRC)
 			OXFORD_API_ID=$(OXFORD_API_ID) \
 		--build-arg \
 			OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) .
+		-t $(SERVER) .
 
-	docker run --rm -v `pwd`/target:/app/target \
-		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
-		-e OXFORD_API_ID=$(OXFORD_API_ID) \
-		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) \
+.PHONY: server/push
+server/push:
+	docker tag $(SERVER) $(GCP_REPO)
+	gcloud docker -- push $(GCP_REPO)
+	# pull image from Google Container Registry into Hyper
+	hyper pull $(GCP_REPO)
 
-	mkdir -p bin/$(OS)
-	cp target/release/$(NAME) bin/$(OS)/$(NAME)
+.PHONY: server/run
+server/run: server/build
+	docker run -t $(SERVER) -p 3000:3000
 
-.PHONY: run/Docker
-run/Docker: Cargo.toml $(SRC)
-	docker run --rm -v `pwd`/target:/app/target \
-		-e GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) \
-		-e OXFORD_API_ID=$(OXFORD_API_ID) \
-		-e OXFORD_API_KEY=$(OXFORD_API_KEY) \
-		-t $(NAME) \
-		echo "OK"
+.PHONY: hyper/login
+hyper/login:
+	hyper login \
+		-e kogai0121@gmail.com \
+		-u oauth2accesstoken \
+		-p "$(shell gcloud --project=trs-command auth print-access-token)" \
+		https://asia.gcr.io
+
+.PHONY: hyper/create
+hyper/create: server/build hyper/login
+	hyper func create --name $(NAME) $(GCP_REPO)
+
+.PHONY: hyper/rebuild
+hyper/rebuild: server/build hyper/login
+	hyper func rm $(NAME) $(GCP_REPO)
+	hyper func create --name $(NAME) $(GCP_REPO)
 
 .PHONY: cache
 cache:
@@ -59,17 +74,6 @@ clean:
 	rm -rf bin
 	cargo clean
 
-.PHONY: secret
-secret:
-	travis encrypt \
-		GOOGLE_CLOUD_PLATFORM_API_KEY="${GOOGLE_CLOUD_PLATFORM_API_KEY}" \
-		OXFORD_API_ID="${OXFORD_API_ID}" \
-		OXFORD_API_KEY="${OXFORD_API_KEY}" \
-		--add env
-	travis encrypt \
-		GITHUB_API_TOKEN="${GITHUB_API_TOKEN}" \
-		--add deploy.api_key
-
 .PHONY: release
 release:
 	git tag -af "v${VERSION}" -m ""
@@ -79,3 +83,7 @@ release:
 perf.data:
 	perf record -g -o ./perf.data -- $(NAME) -t cat is cute
 	perf report -g -G
+
+secrets:
+	mkdir -p secrets
+	ssh-keygen -t rsa -b 4096 -C "kogai0121@gmail.com"
