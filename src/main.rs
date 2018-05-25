@@ -33,7 +33,11 @@ fn translate_between(
     match fs_cache.get(&namespace, &query_text) {
         Some(definitions) => definitions,
         None => {
-            let new_def = translate::translate(&target_language, &query_text);
+            let new_def = translate::translate(
+                &target_language,
+                &query_text,
+                (&fs_cache).api_keys.gcloud_translate_api_key.to_owned(),
+            );
             fs_cache.set(&namespace, &query_text, &new_def);
             new_def
         }
@@ -89,7 +93,10 @@ fn run() {
     let default_language = fs_cache.get_language();
 
     if matches.is_present("languages") {
-        let result = translate::language(&default_language);
+        let result = translate::language(
+            &default_language,
+            (&fs_cache).api_keys.gcloud_translate_api_key.to_owned(),
+        );
         println!("{}", result);
         exit(0);
     }
@@ -115,7 +122,7 @@ fn run() {
             let definitions = match fs_cache.get(&namespace, &escaped_query_words) {
                 Some(definitions) => definitions,
                 None => {
-                    let new_def = oxford::definitions(query_words);
+                    let new_def = oxford::definitions(query_words, (&fs_cache).api_keys.to_owned());
                     fs_cache.set(&namespace, &escaped_query_words, &new_def);
                     new_def
                 }

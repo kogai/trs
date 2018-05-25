@@ -4,7 +4,6 @@ use std::io::Read;
 
 const ENDPOINT_GOOGLE: &'static str = "https://translation.googleapis.com/language/translate/v2";
 const API_LANGUAGES: &'static str = "/languages";
-const API_KEY: &'static str = env!("GOOGLE_CLOUD_PLATFORM_API_KEY");
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct ErrorReason {
@@ -44,9 +43,9 @@ enum Method {
     Post,
 }
 
-fn request(path: String, method: Method) -> String {
+fn request(path: String, method: Method, api_key: String) -> String {
     let http_client = Client::new().expect("Create HTTP client is failed");
-    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, API_KEY);
+    let url = format!("{}{}&key={}", ENDPOINT_GOOGLE, path, api_key);
     let mut buffer = String::new();
     match method {
         Method::Get => http_client.get(url.as_str()),
@@ -59,9 +58,9 @@ fn request(path: String, method: Method) -> String {
     buffer
 }
 
-pub fn translate(target_language: &String, query_text: &String) -> String {
+pub fn translate(target_language: &String, query_text: &String, api_key: String) -> String {
     let path = format!("?q={}&target={}&format=text", query_text, target_language);
-    let buffer = request(path, Method::Post);
+    let buffer = request(path, Method::Post, api_key);
     let response = serde_json::from_str::<Translate>(&buffer).unwrap();
 
     match response {
@@ -92,9 +91,9 @@ enum Language {
     Error { error: Errors },
 }
 
-pub fn language(target_language: &String) -> String {
+pub fn language(target_language: &String, api_key: String) -> String {
     let path = format!("{}?target={}", API_LANGUAGES, target_language);
-    let buffer = request(path, Method::Get);
+    let buffer = request(path, Method::Get, api_key);
 
     let response = serde_json::from_str::<Language>(&buffer).unwrap();
 

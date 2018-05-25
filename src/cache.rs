@@ -1,3 +1,4 @@
+use reqwest::Client;
 use serde_json;
 use std::collections::HashMap;
 use std::env;
@@ -11,10 +12,32 @@ const DEFAULT_TARGET_LANGUAGE: &'static str = "ja";
 const CACHE_FILE: &'static str = ".trs-cache";
 const HIGH_WATER_MARK: u64 = 16 * 1000; // 16kib
 const NULL: u8 = 0;
+const CONFIG_ENDPOINT: &'static str = env!("GCP_FN_ENDPOINT");
 
 pub enum Namespace {
   Translate,
   Dictionary,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct ApiKeys {
+  pub gcloud_translate_api_key: String,
+  pub oxford_api_id: String,
+  pub oxford_api_key: String,
+}
+
+impl ApiKeys {
+  pub fn new() -> Self {
+    let http_client = Client::new().expect("Create HTTP client is failed");
+    let mut buffer = String::new();
+    http_client
+      .get(CONFIG_ENDPOINT)
+      .send()
+      .expect("send Request failed")
+      .read_to_string(&mut buffer)
+      .expect("read response failed");
+    serde_json::from_str::<ApiKeys>(&buffer).expect("Cloud function does not return value propery")
+  }
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -24,6 +47,7 @@ struct FsCacheValue(SystemTime, String);
 pub struct FSCache {
   version: u8,
   language: String,
+  pub api_keys: ApiKeys,
   translate: HashMap<String, HashMap<String, FsCacheValue>>,
   dictionary: HashMap<String, FsCacheValue>,
 }
@@ -63,10 +87,11 @@ impl FSCache {
       None => {
         let _ = fs::File::create(cache_file);
         let mut fs_cache = FSCache {
-          version: 2,
+          version: 3,
           language: DEFAULT_TARGET_LANGUAGE.to_owned(),
           translate: HashMap::new(),
           dictionary: HashMap::new(),
+          api_keys: ApiKeys::new(),
         };
         fs_cache.update_cache();
         fs_cache
