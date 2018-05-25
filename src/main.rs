@@ -117,7 +117,6 @@ fn run() {
         ("dictionary", Some(cmd)) => {
             let namespace = cache::Namespace::Dictionary;
             let query_words = values_t!(cmd.values_of("dictionary"), String).unwrap_or(vec![]);
-            println!("{:#?}", query_words);
             let escaped_query_words = utils::space_to_underscore(&query_words.join(" "));
             let definitions = match fs_cache.get(&namespace, &escaped_query_words) {
                 Some(definitions) => definitions,

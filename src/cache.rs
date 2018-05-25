@@ -30,7 +30,6 @@ impl ApiKeys {
   pub fn new() -> Self {
     let http_client = Client::new().expect("Create HTTP client is failed");
     let mut buffer = String::new();
-    println!("CONFIG_ENDPOINT: {}", CONFIG_ENDPOINT);
     http_client
       .get(CONFIG_ENDPOINT)
       .send()
