@@ -78,7 +78,7 @@ clean:
 release:
 	git tag -af "v${VERSION}" -m ""
 	git push
-	git push --tags
+	git push --follow-tags
 
 .PHONY: perf.data
 perf.data:
