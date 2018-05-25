@@ -1,11 +1,11 @@
 [package]
 name = "trs"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["shinichi kogai <kogai0121@gmail.com>"]
 categories = ["command-line-utilities"]
 
 [[bin]]
-name = "cli"
+name = "trs"
 path = "src/main.rs"
 
 [[bin]]
