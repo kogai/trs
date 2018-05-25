@@ -7,3 +7,4 @@ target/
 perf.data
 perf.data.old
 secrets
+index.js
