@@ -1,16 +1,8 @@
 [package]
 name = "trs"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["shinichi kogai <kogai0121@gmail.com>"]
 categories = ["command-line-utilities"]
-
-[[bin]]
-name = "trs"
-path = "src/main.rs"
-
-[[bin]]
-name = "server"
-path = "src/server.rs"
 
 [dependencies]
 reqwest = "0.5.1"

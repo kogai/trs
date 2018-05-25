@@ -7,6 +7,8 @@ PWD := $(shell pwd)
 GIT_HASH := $(shell git log  --pretty=format:"%H" | head -n1)
 GCP_PJ_ID := trslt-165501
 GCP_REPO := asia.gcr.io/$(GCP_PJ_ID)/github-kogai-trs:$(GIT_HASH)
+GCP_FN_NAME := helloGET
+GCP_FN_ENDPOINT := https://us-central1-$(GCP_PJ_ID).cloudfunctions.net/$(GCP_FN_NAME)
 GOOGLE_CLOUD_PLATFORM_API_KEY := "${GOOGLE_CLOUD_PLATFORM_API_KEY}"
 OXFORD_API_ID := "${OXFORD_API_ID}"
 OXFORD_API_KEY := "${OXFORD_API_KEY}"
@@ -14,9 +16,7 @@ OS := $(shell uname)
 VERSION := $(shell cat Cargo.toml | grep version | sed -e 's/version\ =\ \"\(.*\)\"/\1/')
 
 bin/$(OS)/$(NAME): Cargo.toml $(SRC)
-	GOOGLE_CLOUD_PLATFORM_API_KEY=$(GOOGLE_CLOUD_PLATFORM_API_KEY) && \
-	OXFORD_API_ID=$(OXFORD_API_ID) && \
-	OXFORD_API_KEY=$(OXFORD_API_KEY) && \
+	GCP_FN_ENDPOINT=$(GCP_FN_ENDPOINT ) && \
 	cargo build --release
 	mkdir -p bin/$(OS)
 	cp target/release/$(NAME) bin/$(OS)/$(NAME)
@@ -73,6 +73,12 @@ cache:
 clean:
 	rm -rf bin
 	cargo clean
+
+.PHONY: functions
+functions:
+	gcloud config set project trslt-165501
+	gcloud beta functions deploy $(GCP_FN_NAME) --trigger-http
+	curl -d "key=value" $(GCP_FN_ENDPOINT)
 
 .PHONY: release
 release:
