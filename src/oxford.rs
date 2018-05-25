@@ -1,14 +1,15 @@
 use oxford_dictionary_api_rs::{apis, models};
 
+use cache::ApiKeys;
 use hyper::Client;
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Core;
 use std::fmt::{self, Display, Formatter};
 use termion::{color, style};
+use tokio_core::reactor::Core;
 use utils::space_to_underscore;
 
-pub fn definitions(query_words: Vec<String>) -> String {
-  match call(query_words) {
+pub fn definitions(query_words: Vec<String>, api_keys: ApiKeys) -> String {
+  match call(query_words, api_keys) {
     Ok(result) => enumlate_examples(result)
       .iter()
       .map(|d| format!("{}", d))
@@ -18,7 +19,7 @@ pub fn definitions(query_words: Vec<String>) -> String {
   }
 }
 
-fn call(query_words: Vec<String>) -> Result<models::RetrieveEntry, String> {
+fn call(query_words: Vec<String>, api_keys: ApiKeys) -> Result<models::RetrieveEntry, String> {
   let query_text = space_to_underscore(&query_words.join(" "));
   let mut core = Core::new().unwrap();
   let handle = core.handle();
@@ -33,8 +34,8 @@ fn call(query_words: Vec<String>) -> Result<models::RetrieveEntry, String> {
     .entries_source_lang_word_id_get(
       "en",
       &query_text,
-      env!("OXFORD_API_ID"),
-      env!("OXFORD_API_KEY"),
+      api_keys.oxford_api_id.to_owned().as_str(),
+      api_keys.oxford_api_key.to_owned().as_str(),
     );
 
   match core.run(work) {
