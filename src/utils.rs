@@ -1,3 +1,5 @@
+use flame;
+
 pub fn space_to_underscore(base: &String) -> String {
   base.chars().fold("".to_owned(), |acc, c| {
     if c.is_whitespace() {
@@ -6,6 +8,23 @@ pub fn space_to_underscore(base: &String) -> String {
       format!("{}{}", acc, c)
     }
   })
+}
+
+#[cfg(not(debug_assertions))]
+pub fn span_of<S, F, R>(_: S, f: F) -> R
+where
+  S: Into<flame::StrCow>,
+  F: FnOnce() -> R,
+{
+  f()
+}
+#[cfg(debug_assertions)]
+pub fn span_of<S, F, R>(name: S, f: F) -> R
+where
+  S: Into<flame::StrCow>,
+  F: FnOnce() -> R,
+{
+  flame::span_of(name, f)
 }
 
 #[cfg(test)]
