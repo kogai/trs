@@ -10,7 +10,12 @@ references:
       name: Setup global dependencies
       command: |
         sudo apt-get update
+        sudo apt-get install -y google-cloud-sdk
+        gcloud config set core/disable_usage_reporting true
+        gcloud config set component_manager/disable_update_check true
         curl https://sh.rustup.rs -sSf | sh -s -- -y
+        gcloud --version
+        docker --version
         echo $GOOGLE_CLOUD_PLATFORM_API_KEY > ${HOME}/gcloud-service-key.json
   build_server: &build_server
     run:

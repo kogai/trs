@@ -1,2 +1,0 @@
-FROM google/cloud-sdk
-
