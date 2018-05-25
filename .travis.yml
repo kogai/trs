@@ -27,8 +27,3 @@ deploy:
     - $PROJECT_NAME-$TRAVIS_TAG-$TARGET.*
   on:
     tags: true
-
-notifications:
-  email:
-    on_success: always
-    on_failure: change

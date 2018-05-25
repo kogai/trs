@@ -19,7 +19,7 @@ pub enum Namespace {
   Dictionary,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ApiKeys {
   pub gcloud_translate_api_key: String,
   pub oxford_api_id: String,
