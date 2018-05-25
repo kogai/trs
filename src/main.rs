@@ -41,6 +41,21 @@ fn translate_between(
 }
 
 fn run() {
+    let arg_of_dictionary = Arg::with_name("dictionary")
+        .index(1)
+        .takes_value(true)
+        .multiple(true);
+
+    let arg_of_to = Arg::with_name("to-target-language")
+        .index(1)
+        .takes_value(true)
+        .multiple(true);
+
+    let arg_of_from = Arg::with_name("from-target-language")
+        .index(1)
+        .takes_value(true)
+        .multiple(true);
+
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .about("CLI tool for English learners")
@@ -58,30 +73,24 @@ fn run() {
                 .takes_value(true),
         )
         .subcommands(vec![
-            SubCommand::with_name("d")
+            SubCommand::with_name("dictionary")
                 .about("See formal English definition of the words")
-                .arg(
-                    Arg::with_name("dictionary")
-                        .index(1)
-                        .takes_value(true)
-                        .multiple(true),
-                ),
-            SubCommand::with_name("f")
+                .arg(&arg_of_dictionary),
+            SubCommand::with_name("d")
+                .about("Alias for dictionary")
+                .arg(arg_of_dictionary),
+            SubCommand::with_name("from")
                 .about("Set the words that translate from target language to english")
-                .arg(
-                    Arg::with_name("from-target-language")
-                        .index(1)
-                        .takes_value(true)
-                        .multiple(true),
-                ),
-            SubCommand::with_name("t")
+                .arg(&arg_of_from),
+            SubCommand::with_name("f")
+                .about("Alias for from")
+                .arg(arg_of_from),
+            SubCommand::with_name("to")
                 .about("Set the words that translate to")
-                .arg(
-                    Arg::with_name("to-target-language")
-                        .index(1)
-                        .takes_value(true)
-                        .multiple(true),
-                ),
+                .arg(&arg_of_to),
+            SubCommand::with_name("t")
+                .about("Alias for to")
+                .arg(arg_of_to),
         ])
         .get_matches();
 
@@ -107,7 +116,7 @@ fn run() {
     };
 
     let result = match matches.subcommand() {
-        ("d", Some(cmd)) => {
+        ("dictionary", Some(cmd)) | ("d", Some(cmd)) => {
             let namespace = cache::Namespace::Dictionary;
             let query_words = values_t!(cmd.values_of("dictionary"), String).unwrap_or(vec![]);
             println!("{:#?}", query_words);
@@ -122,7 +131,7 @@ fn run() {
             };
             definitions
         }
-        ("t", Some(cmd)) => {
+        ("to", Some(cmd)) | ("t", Some(cmd)) => {
             let query_words =
                 values_t!(cmd.values_of("to-target-language"), String).unwrap_or(vec![]);
             let target_language = default_language;
@@ -133,7 +142,7 @@ fn run() {
                 &mut fs_cache,
             )
         }
-        ("f", Some(cmd)) => {
+        ("from", Some(cmd)) | ("f", Some(cmd)) => {
             let query_words =
                 values_t!(cmd.values_of("from-target-language"), String).unwrap_or(vec![]);
             let target_language = "en".to_owned();
