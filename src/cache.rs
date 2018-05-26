@@ -2,6 +2,7 @@ use reqwest::Client;
 use serde_json;
 use std::collections::HashMap;
 use std::env;
+use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
@@ -42,6 +43,11 @@ impl ApiKeys {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 struct FsCacheValue(SystemTime, String);
+impl Display for FsCacheValue {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    write!(f, "{}", self.1)
+  }
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct FSCache {
@@ -116,7 +122,42 @@ impl FSCache {
   }
 
   pub fn get_all(&self) -> String {
-    serde_json::to_string_pretty(&self).unwrap_or("".to_owned())
+    let language = &self.language;
+    let translate = &self
+      .translate
+      .iter()
+      .map(|(ref lan, ref pairs)| {
+        println!("{:?}", pairs);
+        format!(
+          r"Language: {}
+{}",
+          lan,
+          pairs
+            .iter()
+            .map(|(ref key, ref value)| format!("{}: {}", key, value))
+            .collect::<Vec<_>>()
+            .join("\n")
+        )
+      })
+      .collect::<Vec<_>>()
+      .join("\n");
+    let dictionary = &self
+      .dictionary
+      .iter()
+      .map(|(ref key, ref value)| format!("{}:\n{}", key, value))
+      .collect::<Vec<_>>()
+      .join("\n");
+
+    format!(
+      r"Target language: {}
+
+Definitions:
+  {}
+
+Translates:
+  {}",
+      language, dictionary, translate
+    )
   }
 
   pub fn set_language(&mut self, language: &String) {
