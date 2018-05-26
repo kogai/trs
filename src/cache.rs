@@ -122,42 +122,35 @@ impl FSCache {
   }
 
   pub fn get_all(&self) -> String {
-    let language = &self.language;
-    let translate = &self
-      .translate
-      .iter()
-      .map(|(ref lan, ref pairs)| {
-        println!("{:?}", pairs);
-        format!(
-          r"Language: {}
-{}",
-          lan,
-          pairs
+    #[derive(Serialize)]
+    struct Simplified {
+      language: String,
+      translate: HashMap<String, HashMap<String, String>>,
+      dictionary: HashMap<String, String>,
+    };
+
+    let showable = Simplified {
+      language: (&self).language.to_owned(),
+      translate: (&self)
+        .translate
+        .iter()
+        .map(|(lan, pairs)| {
+          let value = pairs
             .iter()
-            .map(|(ref key, ref value)| format!("{}: {}", key, value))
-            .collect::<Vec<_>>()
-            .join("\n")
-        )
-      })
-      .collect::<Vec<_>>()
-      .join("\n");
-    let dictionary = &self
-      .dictionary
-      .iter()
-      .map(|(ref key, ref value)| format!("{}:\n{}", key, value))
-      .collect::<Vec<_>>()
-      .join("\n");
+            .map(|(key, value)| (key.to_owned(), format!("{}", value)))
+            .collect::<HashMap<String, String>>();
+          (lan.to_owned(), value)
+        })
+        .collect::<HashMap<_, _>>(),
+      dictionary: (&self)
+        .dictionary
+        .iter()
+        .map(|(key, value)| (key.to_owned(), format!("{}", value)))
+        .collect::<HashMap<_, _>>()
+        .to_owned(),
+    };
 
-    format!(
-      r"Target language: {}
-
-Definitions:
-  {}
-
-Translates:
-  {}",
-      language, dictionary, translate
-    )
+    serde_json::to_string_pretty(&showable).unwrap()
   }
 
   pub fn set_language(&mut self, language: &String) {
